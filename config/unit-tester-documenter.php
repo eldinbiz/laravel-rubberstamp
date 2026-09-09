@@ -17,7 +17,7 @@ return [
     |
     */
     'results_dir' => env('BROWSER_TEST_RESULTS_DIR', 'browser-test-results'),
-    'pest_log_dir' => env('BROWSER_TEST_PEST_LOG_DIR', '.pest'),
+    'pest_log_dir' => env('PEST_LOG_DIR', env('BROWSER_TEST_PEST_LOG_DIR', '.pest')),
 
     /*
     |--------------------------------------------------------------------------
@@ -27,7 +27,7 @@ return [
     | The memory limit passed to the PHP process when invoking Pest.
     |
     */
-    'memory_limit' => env('BROWSER_TEST_MEMORY_LIMIT', '1024M'),
+    'memory_limit' => env('PEST_MEMORY_LIMIT', env('BROWSER_TEST_MEMORY_LIMIT', '1024M')),
 
     /*
     |--------------------------------------------------------------------------
@@ -61,6 +61,6 @@ return [
     | vendor/bin/pest or vendor/pestphp/pest/bin/pest automatically.
     |
     */
-    'pest_binary' => env('BROWSER_TEST_PEST_BINARY'),
+    'pest_binary' => env('PEST_BINARY', env('BROWSER_TEST_PEST_BINARY')),
 
 ];

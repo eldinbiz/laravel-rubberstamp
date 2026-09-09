@@ -61,7 +61,37 @@ php artisan vendor:publish --tag="unit-tester-documenter-assets"
 
 ## Usage
 
-<!-- Add a basic usage example here. -->
+### Running Tests with Timestamped Documentation
+
+Execute Pest tests with automatic config/view cache clearing and timestamped logging in `.pest/`:
+
+```bash
+# Run all configured test suites (via phpunit.xml)
+php artisan test:features
+
+# Run specific test file or directory
+php artisan test:features tests/Feature
+php artisan test:features tests/Feature/ExampleTest.php
+
+# Pass through any Pest arguments
+php artisan test:features --filter=example --parallel
+
+# Alias
+php artisan test:feature
+```
+
+### Running Browser Tests with Playwright Diagnostics
+
+Execute Pest browser tests with Playwright environment health checks, hot-reloading protection, and snapshot documentation:
+
+```bash
+# Run environment health check
+php artisan test:browser --doctor
+
+# Run browser tests
+php artisan test:browser
+php artisan test:browser tests/Browser/RoleManagementTest.php
+```
 
 ## Changelog
 

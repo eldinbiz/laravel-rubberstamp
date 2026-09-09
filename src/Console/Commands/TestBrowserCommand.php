@@ -40,7 +40,7 @@ final class TestBrowserCommand extends Command
     {
         $doctor = new BrowserEnvironmentDoctor(
             base_path(),
-            (string) config('unit-tester-documenter.chromium_binary') ?: null
+            (string) config('unit-tester-documenter.chromium_binary') ?: null,
         );
 
         if ($this->option('doctor') || $this->option('check')) {
@@ -49,6 +49,7 @@ final class TestBrowserCommand extends Command
 
         if (! $this->option('skip-health-check')) {
             $preflightPassed = $this->runPreflightCheck($doctor);
+
             if (! $preflightPassed) {
                 return self::FAILURE;
             }
@@ -115,6 +116,7 @@ final class TestBrowserCommand extends Command
             foreach ($checks as $check) {
                 if ($check['status'] === BrowserEnvironmentDoctor::STATUS_FAILED) {
                     $this->line("  <fg=red>[FAIL]</> <options=bold>{$check['name']}</>: {$check['message']}");
+
                     if ($check['suggestion'] !== null) {
                         $this->line("         <fg=yellow>Remedy:</> {$check['suggestion']}");
                     }
@@ -151,11 +153,12 @@ final class TestBrowserCommand extends Command
         $this->ensureDirectoryExists(base_path($resultsDir));
         $this->ensureDirectoryExists(base_path($runSnapshotDir));
 
-        putenv("BROWSER_SNAPSHOT_DIR=".base_path($runSnapshotDir));
+        putenv('BROWSER_SNAPSHOT_DIR='.base_path($runSnapshotDir));
         $_ENV['BROWSER_SNAPSHOT_DIR'] = base_path($runSnapshotDir);
         $_SERVER['BROWSER_SNAPSHOT_DIR'] = base_path($runSnapshotDir);
 
         $chromiumPath = $doctor->detectChromiumBinary();
+
         if ($chromiumPath !== null) {
             putenv("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH={$chromiumPath}");
             putenv('PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1');
@@ -188,13 +191,15 @@ final class TestBrowserCommand extends Command
             $this->callSilently('config:clear');
             $this->callSilently('view:clear');
 
-            $target = $this->argument('target') ?: 'tests/Browser';
+            $rawTarget = $this->argument('target');
+            $target = is_string($rawTarget) && $rawTarget !== '' ? $rawTarget : 'tests/Browser';
             $pestBinary = $this->option('pest-path')
                 ?: config('unit-tester-documenter.pest_binary')
                 ?: $doctor->detectPestBinary();
 
             if ($pestBinary === null || ! file_exists((string) $pestBinary)) {
                 $this->error('Pest executable could not be found. Please ensure vendor/bin/pest exists.');
+
                 return self::FAILURE;
             }
 
@@ -204,13 +209,13 @@ final class TestBrowserCommand extends Command
             $command = array_merge(
                 [
                     PHP_BINARY,
-                    "-d", "memory_limit={$memoryLimit}",
-                    "-d", "output_buffering=0",
+                    '-d', "memory_limit={$memoryLimit}",
+                    '-d', 'output_buffering=0',
                     (string) $pestBinary,
-                    (string) $target,
+                    $target,
                     '--colors=always',
                 ],
-                $forwardedArgs
+                $forwardedArgs,
             );
 
             $pestLogHandle = fopen(base_path($pestLog), 'wb');
@@ -222,19 +227,20 @@ final class TestBrowserCommand extends Command
                 env: array_merge($_ENV, [
                     'BROWSER_SNAPSHOT_DIR' => base_path($runSnapshotDir),
                 ]),
-                timeout: null
+                timeout: null,
             );
 
             $this->info("Starting Pest Browser run: {$runName}");
             $this->line("<fg=gray>Target:</> {$target}");
             $this->newLine();
 
-            $exitCode = $process->run(function ($type, $buffer) use ($pestLogHandle, $runResultsLogHandle): void {
+            $exitCode = $process->run(function (string $type, string $buffer) use ($pestLogHandle, $runResultsLogHandle): void {
                 $this->output->write($buffer);
 
                 if (is_resource($pestLogHandle)) {
                     fwrite($pestLogHandle, $buffer);
                 }
+
                 if (is_resource($runResultsLogHandle)) {
                     fwrite($runResultsLogHandle, $buffer);
                 }
@@ -243,6 +249,7 @@ final class TestBrowserCommand extends Command
             if (is_resource($pestLogHandle)) {
                 fclose($pestLogHandle);
             }
+
             if (is_resource($runResultsLogHandle)) {
                 fclose($runResultsLogHandle);
             }
@@ -258,6 +265,7 @@ final class TestBrowserCommand extends Command
                 $this->newLine();
                 $this->line('<fg=red;options=bold>=================================================================</>');
                 $this->line("<fg=red;options=bold>Browser test failure detected (exit code: {$exitCode}).</>");
+
                 if ((bool) config('unit-tester-documenter.cleanup_snapshots_on_failure', true)) {
                     $this->line("<fg=yellow>Cleaned up snapshot directory:</> {$runSnapshotDir}");
                 }
@@ -286,11 +294,13 @@ final class TestBrowserCommand extends Command
     private function cleanupPreTestArtifacts(): void
     {
         $tempDir = base_path('vendor'.DIRECTORY_SEPARATOR.'pestphp'.DIRECTORY_SEPARATOR.'pest-plugin-browser'.DIRECTORY_SEPARATOR.'.temp');
+
         if (is_dir($tempDir)) {
             $this->deleteDirectory($tempDir);
         }
 
         $screenshotsDir = base_path('tests'.DIRECTORY_SEPARATOR.'Browser'.DIRECTORY_SEPARATOR.'Screenshots');
+
         if (is_dir($screenshotsDir)) {
             $this->deleteDirectoryContents($screenshotsDir);
         }
@@ -309,6 +319,7 @@ final class TestBrowserCommand extends Command
         foreach ($argv as $index => $token) {
             if ($token === 'test:browser' || str_ends_with($token, 'test:browser')) {
                 $cmdIndex = $index;
+
                 break;
             }
         }
@@ -375,6 +386,7 @@ final class TestBrowserCommand extends Command
         }
 
         $items = scandir($dir);
+
         if ($items === false) {
             return;
         }
@@ -385,6 +397,7 @@ final class TestBrowserCommand extends Command
             }
 
             $path = $dir.DIRECTORY_SEPARATOR.$item;
+
             if (is_dir($path)) {
                 $this->deleteDirectory($path);
             } else {
@@ -405,6 +418,7 @@ final class TestBrowserCommand extends Command
         $this->ensureDirectoryExists($target);
 
         $items = scandir($source);
+
         if ($items === false) {
             return;
         }

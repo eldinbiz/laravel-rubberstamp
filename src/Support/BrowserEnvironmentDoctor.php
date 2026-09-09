@@ -5,21 +5,23 @@ declare(strict_types=1);
 namespace UnitTesterDocumenter\UnitTesterDocumenter\Support;
 
 use Symfony\Component\Process\Process;
+use Throwable;
 
 final class BrowserEnvironmentDoctor
 {
-    public const STATUS_OK = 'OK';
-    public const STATUS_WARNING = 'WARNING';
-    public const STATUS_FAILED = 'FAILED';
+    public const string STATUS_OK = 'OK';
+
+    public const string STATUS_WARNING = 'WARNING';
+
+    public const string STATUS_FAILED = 'FAILED';
 
     /**
-     * @param string $basePath Base path of the host Laravel application.
+     * @param  string  $basePath  Base path of the host Laravel application.
      */
     public function __construct(
         private readonly string $basePath,
         private readonly ?string $configuredChromiumBinary = null,
-    ) {
-    }
+    ) {}
 
     /**
      * Run all diagnostic checks.
@@ -40,7 +42,7 @@ final class BrowserEnvironmentDoctor
     /**
      * Determine whether any diagnostic check resulted in a FAILED status.
      *
-     * @param array<int, array{name: string, status: string, message: string, suggestion: ?string}> $checks
+     * @param  array<int, array{name: string, status: string, message: string, suggestion: ?string}>  $checks
      */
     public function hasFailures(array $checks): bool
     {
@@ -74,7 +76,7 @@ final class BrowserEnvironmentDoctor
                     'suggestion' => null,
                 ];
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Process execution failed
         }
 
@@ -119,7 +121,7 @@ final class BrowserEnvironmentDoctor
                     'suggestion' => null,
                 ];
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             //
         }
 
@@ -151,6 +153,7 @@ final class BrowserEnvironmentDoctor
 
         // Check if Playwright cache contains chromium
         $playwrightCache = $this->findPlaywrightCachedChromium();
+
         if ($playwrightCache !== null) {
             return [
                 'name' => 'Chromium / Browser Binary',
@@ -242,6 +245,7 @@ final class BrowserEnvironmentDoctor
         }
 
         $envPath = getenv('PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH');
+
         if (is_string($envPath) && $envPath !== '' && file_exists($envPath)) {
             return $envPath;
         }
@@ -271,7 +275,7 @@ final class BrowserEnvironmentDoctor
             ];
 
             foreach ($windowsCandidates as $candidate) {
-                if (is_string($candidate) && file_exists($candidate)) {
+                if (file_exists($candidate)) {
                     return $candidate;
                 }
             }
@@ -289,6 +293,7 @@ final class BrowserEnvironmentDoctor
 
         if (PHP_OS_FAMILY === 'Windows') {
             $localAppData = getenv('LOCALAPPDATA');
+
             if (is_string($localAppData) && $localAppData !== '') {
                 $pathsToCheck[] = $localAppData.'\\ms-playwright';
             }
@@ -300,7 +305,8 @@ final class BrowserEnvironmentDoctor
         foreach ($pathsToCheck as $base) {
             if (is_dir($base)) {
                 $matches = glob($base.DIRECTORY_SEPARATOR.'chromium-*');
-                if ($matches && count($matches) > 0) {
+
+                if ($matches !== false && $matches !== []) {
                     return $matches[0];
                 }
             }
@@ -325,6 +331,7 @@ final class BrowserEnvironmentDoctor
 
         foreach ($cachePatterns as $pattern) {
             $files = glob($pattern);
+
             if (! is_array($files)) {
                 continue;
             }
