@@ -2,14 +2,20 @@
 
 declare(strict_types=1);
 
-it('registers the test:browser artisan command', function () {
+it('registers the doctest:browser artisan command', function () {
     $commands = Artisan::all();
 
-    expect($commands)->toHaveKey('test:browser');
+    expect($commands)->toHaveKey('doctest:browser');
+});
+
+it('registers the test:browser alias', function () {
+    $command = Artisan::all()['doctest:browser'];
+
+    expect($command->getAliases())->toContain('test:browser');
 });
 
 it('has the expected command description and options', function () {
-    $command = Artisan::all()['test:browser'];
+    $command = Artisan::all()['doctest:browser'];
 
     expect($command->getDescription())->toContain('Run Pest browser tests with Playwright self-health diagnostics')
         ->and($command->getDefinition()->hasOption('doctor'))->toBeTrue()
@@ -18,10 +24,10 @@ it('has the expected command description and options', function () {
         ->and($command->getDefinition()->hasArgument('target'))->toBeTrue();
 });
 
-it('can run doctor diagnostics via artisan test:browser --doctor', function () {
-    $this->artisan('test:browser', ['--doctor' => true])
+it('can run doctor diagnostics via artisan doctest:browser --doctor', function () {
+    $this->artisan('doctest:browser', ['--doctor' => true])
         ->expectsOutputToContain('Browser Testing & Playwright Environment Doctor')
-        ->assertExitCode(in_array($this->artisan('test:browser', ['--doctor' => true]), [0, 1], true) ? 0 : 1);
+        ->assertExitCode(in_array($this->artisan('doctest:browser', ['--doctor' => true]), [0, 1], true) ? 0 : 1);
 });
 
 it('exposes the default package configurations', function () {

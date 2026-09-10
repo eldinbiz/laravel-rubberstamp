@@ -25,7 +25,7 @@ it('loads the package views', function () {
 });
 
 it('registers the artisan command', function () {
-    $this->artisan('unit-tester-documenter:placeholder')
-        ->expectsOutputToContain('UnitTesterDocumenter placeholder command executed.')
+    $this->artisan('doctest')
+        ->expectsOutputToContain('DocTest Testing Suite')
         ->assertSuccessful();
 });

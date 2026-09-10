@@ -11,19 +11,29 @@ class UnitTesterDocumenterCommand extends Command
     /**
      * The command signature.
      */
-    protected $signature = 'unit-tester-documenter:placeholder';
+    protected $signature = 'doctest';
 
     /**
      * The command description.
      */
-    protected $description = 'Placeholder Artisan command shipped by the package unit-tester-documenter.';
+    protected $description = 'Run automated tests with documentation and diagnostics (DocTest suite).';
 
     /**
      * Execute the console command.
      */
     public function handle(): int
     {
-        $this->line('UnitTesterDocumenter placeholder command executed.');
+        $this->newLine();
+        $this->line('<fg=cyan;options=bold>=================================================================</>');
+        $this->line('<fg=cyan;options=bold>                   DocTest Testing Suite                         </>');
+        $this->line('<fg=cyan;options=bold>=================================================================</>');
+        $this->newLine();
+        $this->line(' Available DocTest Commands:');
+        $this->line('  <fg=green>php artisan doctest:features</>   Run Pest tests with cache clearing and .pest/ logging');
+        $this->line('  <fg=green>php artisan doctest:browser</>    Run browser tests with Playwright diagnostics & snapshots');
+        $this->newLine();
+        $this->line(' Run any command with <comment>--help</comment> for target options and flags.');
+        $this->line('<fg=cyan;options=bold>=================================================================</>');
 
         return self::SUCCESS;
     }

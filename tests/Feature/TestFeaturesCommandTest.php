@@ -4,20 +4,22 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Artisan;
 
-it('registers the test:features artisan command', function () {
+it('registers the doctest:features artisan command', function () {
     $commands = Artisan::all();
 
-    expect($commands)->toHaveKey('test:features');
+    expect($commands)->toHaveKey('doctest:features');
 });
 
-it('registers the test:feature alias', function () {
-    $command = Artisan::all()['test:features'];
+it('registers the doctest:feature, test:features, and test:feature aliases', function () {
+    $command = Artisan::all()['doctest:features'];
 
-    expect($command->getAliases())->toContain('test:feature');
+    expect($command->getAliases())->toContain('doctest:feature')
+        ->and($command->getAliases())->toContain('test:features')
+        ->and($command->getAliases())->toContain('test:feature');
 });
 
 it('has the expected command definition and options', function () {
-    $command = Artisan::all()['test:features'];
+    $command = Artisan::all()['doctest:features'];
 
     expect($command->getDescription())->toContain('Run Pest tests with cache clearing')
         ->and($command->getDefinition()->hasArgument('target'))->toBeTrue()
@@ -28,7 +30,7 @@ it('has the expected command definition and options', function () {
 });
 
 it('handles missing pest executable gracefully', function () {
-    $this->artisan('test:features', [
+    $this->artisan('doctest:features', [
         '--pest-path' => '/nonexistent/path/to/pest',
         '--skip-clear' => true,
     ])

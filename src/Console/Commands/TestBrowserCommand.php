@@ -13,12 +13,19 @@ final class TestBrowserCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'test:browser
+    protected $signature = 'doctest:browser
         {target? : The test file or directory to execute (defaults to tests/Browser)}
         {--doctor : Run environment and Playwright health checks only}
         {--check : Alias for --doctor}
         {--skip-health-check : Skip pre-flight environment health check}
         {--pest-path= : Custom path to Pest binary}';
+
+    /**
+     * Alternative aliases for the command.
+     *
+     * @var array<int, string>
+     */
+    protected $aliases = ['test:browser'];
 
     /**
      * The console command description.
@@ -317,7 +324,10 @@ final class TestBrowserCommand extends Command
         $cmdIndex = false;
 
         foreach ($argv as $index => $token) {
-            if ($token === 'test:browser' || str_ends_with($token, 'test:browser')) {
+            if (
+                $token === 'doctest:browser' || str_ends_with($token, 'doctest:browser') ||
+                $token === 'test:browser' || str_ends_with($token, 'test:browser')
+            ) {
                 $cmdIndex = $index;
 
                 break;

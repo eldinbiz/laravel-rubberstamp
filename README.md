@@ -61,22 +61,32 @@ php artisan vendor:publish --tag="unit-tester-documenter-assets"
 
 ## Usage
 
+### DocTest Suite Overview
+
+Run the root command for an overview of the DocTest suite:
+
+```bash
+php artisan doctest
+```
+
 ### Running Tests with Timestamped Documentation
 
 Execute Pest tests with automatic config/view cache clearing and timestamped logging in `.pest/`:
 
 ```bash
 # Run all configured test suites (via phpunit.xml)
-php artisan test:features
+php artisan doctest:features
 
 # Run specific test file or directory
-php artisan test:features tests/Feature
-php artisan test:features tests/Feature/ExampleTest.php
+php artisan doctest:features tests/Feature
+php artisan doctest:features tests/Feature/ExampleTest.php
 
 # Pass through any Pest arguments
-php artisan test:features --filter=example --parallel
+php artisan doctest:features --filter=example --parallel
 
-# Alias
+# Backward-compatible aliases
+php artisan doctest:feature
+php artisan test:features
 php artisan test:feature
 ```
 
@@ -86,11 +96,14 @@ Execute Pest browser tests with Playwright environment health checks, hot-reload
 
 ```bash
 # Run environment health check
-php artisan test:browser --doctor
+php artisan doctest:browser --doctor
 
 # Run browser tests
+php artisan doctest:browser
+php artisan doctest:browser tests/Browser/RoleManagementTest.php
+
+# Backward-compatible alias
 php artisan test:browser
-php artisan test:browser tests/Browser/RoleManagementTest.php
 ```
 
 ## Changelog

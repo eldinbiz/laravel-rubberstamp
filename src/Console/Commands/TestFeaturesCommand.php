@@ -12,7 +12,7 @@ final class TestFeaturesCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'test:features
+    protected $signature = 'doctest:features
         {target? : Optional test file or directory to execute (defaults to running all test suites via phpunit.xml)}
         {--pest-path= : Custom path to Pest binary}
         {--skip-clear : Skip config:clear and view:clear before running tests}';
@@ -22,7 +22,7 @@ final class TestFeaturesCommand extends Command
      *
      * @var array<int, string>
      */
-    protected $aliases = ['test:feature'];
+    protected $aliases = ['doctest:feature', 'test:features', 'test:feature'];
 
     /**
      * The console command description.
@@ -142,8 +142,8 @@ final class TestFeaturesCommand extends Command
         $customPath = $this->option('pest-path')
             ?: config('unit-tester-documenter.pest_binary');
 
-        if ($customPath !== null && is_string($customPath) && file_exists($customPath)) {
-            return $customPath;
+        if ($customPath !== null && is_string($customPath)) {
+            return file_exists($customPath) ? $customPath : null;
         }
 
         $candidates = [
@@ -173,6 +173,8 @@ final class TestFeaturesCommand extends Command
 
         foreach ($argv as $index => $token) {
             if (
+                $token === 'doctest:features' || str_ends_with($token, 'doctest:features') ||
+                $token === 'doctest:feature' || str_ends_with($token, 'doctest:feature') ||
                 $token === 'test:features' || str_ends_with($token, 'test:features') ||
                 $token === 'test:feature' || str_ends_with($token, 'test:feature')
             ) {
