@@ -6,10 +6,14 @@ namespace UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands;
 
 use Illuminate\Console\Command;
 use Symfony\Component\Process\Process;
+use UnitTesterDocumenter\UnitTesterDocumenter\Console\Concerns\InteractsWithDocTestOptions;
+use UnitTesterDocumenter\UnitTesterDocumenter\Support\AuditMetadataResolver;
 use UnitTesterDocumenter\UnitTesterDocumenter\Support\BrowserEnvironmentDoctor;
 
 final class TestBrowserCommand extends Command
 {
+    use InteractsWithDocTestOptions;
+
     /**
      * The name and signature of the console command.
      */
@@ -18,7 +22,15 @@ final class TestBrowserCommand extends Command
         {--doctor : Run environment and Playwright health checks only}
         {--check : Alias for --doctor}
         {--skip-health-check : Skip pre-flight environment health check}
-        {--pest-path= : Custom path to Pest binary}';
+        {--pest-path= : Custom path to Pest binary}
+        {--author= : Author/tester name (defaults to git config user.name)}
+        {--sop= : SOP policy or RFC ticket code (defaults to N/A)}
+        {--document-id= : Custom Document ID prefix (defaults to DOC-TEST-)}
+        {--reviewed-by= : Pipe-separated reviewers/roles (e.g. "Mr Smith,QA Engineer|QA Head")}
+        {--approved-by= : Pipe-separated approvers/roles (e.g. "Jane,QA Lead|Technical Lead")}
+        {--acknowledged-by= : Pipe-separated acknowledgers/roles (e.g. "Bob,Project Manager|Product Owner")}
+        {--i|interactive : Interactively configure audit metadata and sign-off approval sheet}
+        {--no-doc : Skip corporate report generation}';
 
     /**
      * Alternative aliases for the command.
@@ -149,6 +161,9 @@ final class TestBrowserCommand extends Command
         $timestamp = now()->format('Ymd_His');
         $runName = "browser_test_{$timestamp}";
 
+        $resolver = new AuditMetadataResolver(base_path());
+        $docOptions = $this->resolveDocOptions($resolver);
+
         $resultsDir = (string) config('unit-tester-documenter.results_dir', 'browser-test-results');
         $pestLogDir = (string) config('unit-tester-documenter.pest_log_dir', '.pest');
 
@@ -264,6 +279,14 @@ final class TestBrowserCommand extends Command
             $screenshotsSource = base_path('tests'.DIRECTORY_SEPARATOR.'Browser'.DIRECTORY_SEPARATOR.'Screenshots');
             $this->copyDirectoryContents($screenshotsSource, base_path($runSnapshotDir));
 
+            $this->generateAndRenderReport(
+                $runName,
+                base_path($pestLog),
+                base_path($runSnapshotDir),
+                $docOptions,
+                $timestamp,
+            );
+
             if ($exitCode !== 0) {
                 if ((bool) config('unit-tester-documenter.cleanup_snapshots_on_failure', true)) {
                     $this->deleteDirectory(base_path($runSnapshotDir));
@@ -340,7 +363,16 @@ final class TestBrowserCommand extends Command
 
         $rawTokens = array_slice($argv, $cmdIndex + 1);
         $forwarded = [];
-        $internalFlags = ['--doctor', '--check', '--skip-health-check'];
+        $internalFlags = ['--doctor', '--check', '--skip-health-check', '--interactive', '-i', '--no-doc'];
+        $internalPrefixes = [
+            '--pest-path=',
+            '--author=',
+            '--sop=',
+            '--document-id=',
+            '--reviewed-by=',
+            '--approved-by=',
+            '--acknowledged-by=',
+        ];
 
         $target = $this->argument('target');
 
@@ -349,7 +381,16 @@ final class TestBrowserCommand extends Command
                 continue;
             }
 
-            if (str_starts_with($token, '--pest-path=')) {
+            $matchesPrefix = false;
+            foreach ($internalPrefixes as $prefix) {
+                if (str_starts_with($token, $prefix)) {
+                    $matchesPrefix = true;
+
+                    break;
+                }
+            }
+
+            if ($matchesPrefix) {
                 continue;
             }
 

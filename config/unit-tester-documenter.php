@@ -63,4 +63,36 @@ return [
     */
     'pest_binary' => env('PEST_BINARY', env('BROWSER_TEST_PEST_BINARY')),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Corporate Documentation & Evidence Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for automated print-ready HTML and Markdown test reports
+    | generated for corporate SOP, QA compliance, and audit sign-offs.
+    |
+    */
+    'reports_dir' => env('DOCTEST_REPORTS_DIR', 'doctest-reports'),
+    'auto_document' => (bool) env('DOCTEST_AUTO_DOCUMENT', true),
+    'document_id_prefix' => env('DOCTEST_DOCUMENT_ID_PREFIX', 'DOC-TEST-'),
+    'company_name' => env('DOCTEST_COMPANY_NAME'),
+    'classification' => env('DOCTEST_CLASSIFICATION', 'INTERNAL USE ONLY'),
+    'author_name' => env('DOCTEST_AUTHOR_NAME'),
+    'logo_path' => env('DOCTEST_LOGO_PATH'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Sign-Off Approval Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Default reviewer/approver/acknowledger roles. When left empty, sections
+    | are omitted from the report unless specified via CLI options.
+    |
+    */
+    'signoff' => [
+        'reviewed_by' => [],
+        'approved_by' => [],
+        'acknowledged_by' => [],
+    ],
+
 ];

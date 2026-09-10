@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace UnitTesterDocumenter\UnitTesterDocumenter;
 
 use Illuminate\Support\ServiceProvider;
+use UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands\DocTestDocumentCommand;
 use UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands\TestBrowserCommand;
 use UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands\TestFeaturesCommand;
 use UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands\UnitTesterDocumenterCommand;
@@ -60,6 +61,7 @@ class UnitTesterDocumenterServiceProvider extends ServiceProvider
             UnitTesterDocumenterCommand::class,
             TestBrowserCommand::class,
             TestFeaturesCommand::class,
+            DocTestDocumentCommand::class,
         ]);
     }
 }

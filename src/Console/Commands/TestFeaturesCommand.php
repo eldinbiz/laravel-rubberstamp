@@ -6,16 +6,28 @@ namespace UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands;
 
 use Illuminate\Console\Command;
 use Symfony\Component\Process\Process;
+use UnitTesterDocumenter\UnitTesterDocumenter\Console\Concerns\InteractsWithDocTestOptions;
+use UnitTesterDocumenter\UnitTesterDocumenter\Support\AuditMetadataResolver;
 
 final class TestFeaturesCommand extends Command
 {
+    use InteractsWithDocTestOptions;
+
     /**
      * The name and signature of the console command.
      */
     protected $signature = 'doctest:features
         {target? : Optional test file or directory to execute (defaults to running all test suites via phpunit.xml)}
         {--pest-path= : Custom path to Pest binary}
-        {--skip-clear : Skip config:clear and view:clear before running tests}';
+        {--skip-clear : Skip config:clear and view:clear before running tests}
+        {--author= : Author/tester name (defaults to git config user.name)}
+        {--sop= : SOP policy or RFC ticket code (defaults to N/A)}
+        {--document-id= : Custom Document ID prefix (defaults to DOC-TEST-)}
+        {--reviewed-by= : Pipe-separated reviewers/roles (e.g. "Mr Smith,QA Engineer|QA Head")}
+        {--approved-by= : Pipe-separated approvers/roles (e.g. "Jane,QA Lead|Technical Lead")}
+        {--acknowledged-by= : Pipe-separated acknowledgers/roles (e.g. "Bob,Project Manager|Product Owner")}
+        {--i|interactive : Interactively configure audit metadata and sign-off approval sheet}
+        {--no-doc : Skip corporate report generation}';
 
     /**
      * Alternative aliases for the command.
@@ -44,6 +56,9 @@ final class TestFeaturesCommand extends Command
     {
         $timestamp = now()->format('Ymd_His');
         $runName = "test_{$timestamp}";
+
+        $resolver = new AuditMetadataResolver(base_path());
+        $docOptions = $this->resolveDocOptions($resolver);
 
         $pestLogDir = (string) config('unit-tester-documenter.pest_log_dir', '.pest');
         $pestLog = $pestLogDir.DIRECTORY_SEPARATOR.$runName.'.log';
@@ -114,6 +129,14 @@ final class TestFeaturesCommand extends Command
         if (is_resource($pestLogHandle)) {
             fclose($pestLogHandle);
         }
+
+        $this->generateAndRenderReport(
+            $runName,
+            base_path($pestLog),
+            null,
+            $docOptions,
+            $timestamp,
+        );
 
         if ($exitCode !== 0) {
             $this->newLine();
@@ -190,7 +213,16 @@ final class TestFeaturesCommand extends Command
 
         $rawTokens = array_slice($argv, $cmdIndex + 1);
         $forwarded = [];
-        $internalFlags = ['--skip-clear'];
+        $internalFlags = ['--skip-clear', '--interactive', '-i', '--no-doc'];
+        $internalPrefixes = [
+            '--pest-path=',
+            '--author=',
+            '--sop=',
+            '--document-id=',
+            '--reviewed-by=',
+            '--approved-by=',
+            '--acknowledged-by=',
+        ];
 
         $target = $this->argument('target');
 
@@ -199,7 +231,16 @@ final class TestFeaturesCommand extends Command
                 continue;
             }
 
-            if (str_starts_with($token, '--pest-path=')) {
+            $matchesPrefix = false;
+            foreach ($internalPrefixes as $prefix) {
+                if (str_starts_with($token, $prefix)) {
+                    $matchesPrefix = true;
+
+                    break;
+                }
+            }
+
+            if ($matchesPrefix) {
                 continue;
             }
 
