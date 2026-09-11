@@ -71,7 +71,7 @@ php artisan doctest
 
 ### Running Tests with Automated Corporate Documentation
 
-Execute Pest tests with automatic config/view cache clearing, `.pest/` logging, and print-ready HTML & Markdown report compilation:
+Execute Pest tests with automatic config/view cache clearing, `doctest-reports/test-log/` logging, and print-ready HTML & Markdown report compilation:
 
 ```bash
 # Run tests and generate corporate audit reports

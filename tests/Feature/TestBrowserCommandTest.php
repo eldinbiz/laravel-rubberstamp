@@ -31,8 +31,9 @@ it('can run doctor diagnostics via artisan doctest:browser --doctor', function (
 });
 
 it('exposes the default package configurations', function () {
-    expect(config('unit-tester-documenter.results_dir'))->toBe('browser-test-results')
-        ->and(config('unit-tester-documenter.pest_log_dir'))->toBe('.pest')
+    expect(config('unit-tester-documenter.results_dir'))->toBe('doctest-reports/browser-test-log')
+        ->and(config('unit-tester-documenter.pest_log_dir'))->toBe('doctest-reports/test-log')
+        ->and(config('unit-tester-documenter.test_log_dir'))->toBe('doctest-reports/test-log')
         ->and(config('unit-tester-documenter.memory_limit'))->toBe('1024M')
         ->and(config('unit-tester-documenter.cleanup_snapshots_on_failure'))->toBeTrue();
 });

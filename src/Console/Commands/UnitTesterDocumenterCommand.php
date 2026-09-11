@@ -29,7 +29,7 @@ class UnitTesterDocumenterCommand extends Command
         $this->line('<fg=cyan;options=bold>=================================================================</>');
         $this->newLine();
         $this->line(' Available DocTest Commands:');
-        $this->line('  <fg=green>php artisan doctest:features</>   Run Pest tests with auto-documentation and .pest/ logging');
+        $this->line('  <fg=green>php artisan doctest:features</>   Run Pest tests with auto-documentation and test-log/ logging');
         $this->line('  <fg=green>php artisan doctest:browser</>    Run browser tests with Playwright diagnostics & snapshots');
         $this->line('  <fg=green>php artisan doctest:document</>   Compile corporate HTML/Markdown reports from test logs');
         $this->newLine();

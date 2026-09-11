@@ -12,12 +12,14 @@ return [
     |--------------------------------------------------------------------------
     |
     | Defines where Pest raw logs and test snapshot images will be stored.
-    | Each test run creates a timestamped subdirectory inside the results
-    | directory and mirror logs in the pest log directory.
+    | Raw test execution logs (for both feature and browser runs) are stored
+    | in the test-log directory inside doctest-reports. Browser test snapshots
+    | are stored in the browser-test-log directory inside doctest-reports.
     |
     */
-    'results_dir' => env('BROWSER_TEST_RESULTS_DIR', 'browser-test-results'),
-    'pest_log_dir' => env('PEST_LOG_DIR', env('BROWSER_TEST_PEST_LOG_DIR', '.pest')),
+    'results_dir' => env('BROWSER_TEST_RESULTS_DIR', env('DOCTEST_REPORTS_DIR', 'doctest-reports').'/browser-test-log'),
+    'test_log_dir' => env('DOCTEST_LOG_DIR', env('PEST_LOG_DIR', env('DOCTEST_REPORTS_DIR', 'doctest-reports').'/test-log')),
+    'pest_log_dir' => env('PEST_LOG_DIR', env('DOCTEST_LOG_DIR', env('DOCTEST_REPORTS_DIR', 'doctest-reports').'/test-log')),
 
     /*
     |--------------------------------------------------------------------------

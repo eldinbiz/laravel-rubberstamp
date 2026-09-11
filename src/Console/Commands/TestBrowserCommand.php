@@ -164,14 +164,14 @@ final class TestBrowserCommand extends Command
         $resolver = new AuditMetadataResolver(base_path());
         $docOptions = $this->resolveDocOptions($resolver);
 
-        $resultsDir = (string) config('unit-tester-documenter.results_dir', 'browser-test-results');
-        $pestLogDir = (string) config('unit-tester-documenter.pest_log_dir', '.pest');
+        $resultsDir = (string) config('unit-tester-documenter.results_dir', 'doctest-reports/browser-test-log');
+        $testLogDir = (string) (config('unit-tester-documenter.test_log_dir')
+            ?: config('unit-tester-documenter.pest_log_dir', 'doctest-reports/test-log'));
 
         $runSnapshotDir = $resultsDir.DIRECTORY_SEPARATOR.$runName;
-        $pestLog = $pestLogDir.DIRECTORY_SEPARATOR.$runName.'.log';
-        $runResultsLog = $resultsDir.DIRECTORY_SEPARATOR.$runName.'.log';
+        $testLog = $testLogDir.DIRECTORY_SEPARATOR.$runName.'.log';
 
-        $this->ensureDirectoryExists(base_path($pestLogDir));
+        $this->ensureDirectoryExists(base_path($testLogDir));
         $this->ensureDirectoryExists(base_path($resultsDir));
         $this->ensureDirectoryExists(base_path($runSnapshotDir));
 
@@ -240,8 +240,7 @@ final class TestBrowserCommand extends Command
                 $forwardedArgs,
             );
 
-            $pestLogHandle = fopen(base_path($pestLog), 'wb');
-            $runResultsLogHandle = fopen(base_path($runResultsLog), 'wb');
+            $testLogHandle = fopen(base_path($testLog), 'wb');
 
             $process = new Process(
                 command: $command,
@@ -256,24 +255,16 @@ final class TestBrowserCommand extends Command
             $this->line("<fg=gray>Target:</> {$target}");
             $this->newLine();
 
-            $exitCode = $process->run(function (string $type, string $buffer) use ($pestLogHandle, $runResultsLogHandle): void {
+            $exitCode = $process->run(function (string $type, string $buffer) use ($testLogHandle): void {
                 $this->output->write($buffer);
 
-                if (is_resource($pestLogHandle)) {
-                    fwrite($pestLogHandle, $buffer);
-                }
-
-                if (is_resource($runResultsLogHandle)) {
-                    fwrite($runResultsLogHandle, $buffer);
+                if (is_resource($testLogHandle)) {
+                    fwrite($testLogHandle, $buffer);
                 }
             });
 
-            if (is_resource($pestLogHandle)) {
-                fclose($pestLogHandle);
-            }
-
-            if (is_resource($runResultsLogHandle)) {
-                fclose($runResultsLogHandle);
+            if (is_resource($testLogHandle)) {
+                fclose($testLogHandle);
             }
 
             $screenshotsSource = base_path('tests'.DIRECTORY_SEPARATOR.'Browser'.DIRECTORY_SEPARATOR.'Screenshots');
@@ -281,7 +272,7 @@ final class TestBrowserCommand extends Command
 
             $this->generateAndRenderReport(
                 $runName,
-                base_path($pestLog),
+                base_path($testLog),
                 base_path($runSnapshotDir),
                 $docOptions,
                 $timestamp,
@@ -299,7 +290,7 @@ final class TestBrowserCommand extends Command
                 if ((bool) config('unit-tester-documenter.cleanup_snapshots_on_failure', true)) {
                     $this->line("<fg=yellow>Cleaned up snapshot directory:</> {$runSnapshotDir}");
                 }
-                $this->line("<fg=white>Logs preserved:</> {$pestLog} and {$runResultsLog}");
+                $this->line("<fg=white>Log preserved:</> {$testLog}");
                 $this->line('<fg=red;options=bold>=================================================================</>');
 
                 return $exitCode;
@@ -309,7 +300,7 @@ final class TestBrowserCommand extends Command
             $this->line('<fg=green;options=bold>=================================================================</>');
             $this->line('<fg=green;options=bold>All browser tests passed successfully!</>');
             $this->line("<fg=white>Snapshots preserved in:</> {$runSnapshotDir}");
-            $this->line("<fg=white>Logs saved in:</> {$pestLog} and {$runResultsLog}");
+            $this->line("<fg=white>Log saved in:</> {$testLog}");
             $this->line('<fg=green;options=bold>=================================================================</>');
 
             return self::SUCCESS;

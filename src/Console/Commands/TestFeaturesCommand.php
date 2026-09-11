@@ -60,10 +60,11 @@ final class TestFeaturesCommand extends Command
         $resolver = new AuditMetadataResolver(base_path());
         $docOptions = $this->resolveDocOptions($resolver);
 
-        $pestLogDir = (string) config('unit-tester-documenter.pest_log_dir', '.pest');
-        $pestLog = $pestLogDir.DIRECTORY_SEPARATOR.$runName.'.log';
+        $testLogDir = (string) (config('unit-tester-documenter.test_log_dir')
+            ?: config('unit-tester-documenter.pest_log_dir', 'doctest-reports/test-log'));
+        $testLog = $testLogDir.DIRECTORY_SEPARATOR.$runName.'.log';
 
-        $this->ensureDirectoryExists(base_path($pestLogDir));
+        $this->ensureDirectoryExists(base_path($testLogDir));
 
         if (! $this->option('skip-clear')) {
             $this->callSilently('config:clear');
@@ -101,7 +102,7 @@ final class TestFeaturesCommand extends Command
             $command[] = $arg;
         }
 
-        $pestLogHandle = fopen(base_path($pestLog), 'wb');
+        $testLogHandle = fopen(base_path($testLog), 'wb');
 
         $process = new Process(
             command: $command,
@@ -118,21 +119,21 @@ final class TestFeaturesCommand extends Command
 
         $this->newLine();
 
-        $exitCode = $process->run(function (string $type, string $buffer) use ($pestLogHandle): void {
+        $exitCode = $process->run(function (string $type, string $buffer) use ($testLogHandle): void {
             $this->output->write($buffer);
 
-            if (is_resource($pestLogHandle)) {
-                fwrite($pestLogHandle, $buffer);
+            if (is_resource($testLogHandle)) {
+                fwrite($testLogHandle, $buffer);
             }
         });
 
-        if (is_resource($pestLogHandle)) {
-            fclose($pestLogHandle);
+        if (is_resource($testLogHandle)) {
+            fclose($testLogHandle);
         }
 
         $this->generateAndRenderReport(
             $runName,
-            base_path($pestLog),
+            base_path($testLog),
             null,
             $docOptions,
             $timestamp,
@@ -142,7 +143,7 @@ final class TestFeaturesCommand extends Command
             $this->newLine();
             $this->line('<fg=red;options=bold>=================================================================</>');
             $this->line("<fg=red;options=bold>Test failure detected (exit code: {$exitCode}).</>");
-            $this->line("<fg=white>Log preserved:</> {$pestLog}");
+            $this->line("<fg=white>Log preserved:</> {$testLog}");
             $this->line('<fg=red;options=bold>=================================================================</>');
 
             return $exitCode;
@@ -151,7 +152,7 @@ final class TestFeaturesCommand extends Command
         $this->newLine();
         $this->line('<fg=green;options=bold>=================================================================</>');
         $this->line('<fg=green;options=bold>All tests passed successfully!</>');
-        $this->line("<fg=white>Log saved in:</> {$pestLog}");
+        $this->line("<fg=white>Log saved in:</> {$testLog}");
         $this->line('<fg=green;options=bold>=================================================================</>');
 
         return self::SUCCESS;

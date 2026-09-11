@@ -43,10 +43,11 @@ final class DocTestDocumentCommand extends Command
      */
     public function handle(): int
     {
-        $pestLogDir = (string) config('unit-tester-documenter.pest_log_dir', '.pest');
-        $resultsDir = (string) config('unit-tester-documenter.results_dir', 'browser-test-results');
+        $testLogDir = (string) (config('unit-tester-documenter.test_log_dir')
+            ?: config('unit-tester-documenter.pest_log_dir', 'doctest-reports/test-log'));
+        $resultsDir = (string) config('unit-tester-documenter.results_dir', 'doctest-reports/browser-test-log');
 
-        $resolved = $this->resolveTargetRun($pestLogDir);
+        $resolved = $this->resolveTargetRun($testLogDir);
 
         if ($resolved === null) {
             $this->error('No test runs found to document. Please run tests first using [php artisan doctest:features] or [php artisan doctest:browser].');
@@ -84,7 +85,7 @@ final class DocTestDocumentCommand extends Command
      *
      * @return array{0: string, 1: string, 2: string}|null
      */
-    private function resolveTargetRun(string $pestLogDir): ?array
+    private function resolveTargetRun(string $testLogDir): ?array
     {
         $target = $this->argument('run');
 
@@ -98,10 +99,10 @@ final class DocTestDocumentCommand extends Command
                 return [$cleanName, $directPath, $this->extractTimestamp($cleanName)];
             }
 
-            $inPestLog = base_path($pestLogDir.DIRECTORY_SEPARATOR.$cleanName.'.log');
+            $inTestLog = base_path($testLogDir.DIRECTORY_SEPARATOR.$cleanName.'.log');
 
-            if (file_exists($inPestLog)) {
-                return [$cleanName, $inPestLog, $this->extractTimestamp($cleanName)];
+            if (file_exists($inTestLog)) {
+                return [$cleanName, $inTestLog, $this->extractTimestamp($cleanName)];
             }
 
             $this->error("Specified run log could not be found: [{$raw}]");
@@ -109,7 +110,7 @@ final class DocTestDocumentCommand extends Command
             return null;
         }
 
-        $fullDir = base_path($pestLogDir);
+        $fullDir = base_path($testLogDir);
 
         if (! is_dir($fullDir)) {
             return null;
