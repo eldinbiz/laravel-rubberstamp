@@ -6,6 +6,7 @@ namespace UnitTesterDocumenter\UnitTesterDocumenter;
 
 use Illuminate\Support\ServiceProvider;
 use UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands\DocTestDocumentCommand;
+use UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands\DocTestPruneCommand;
 use UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands\TestBrowserCommand;
 use UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands\TestFeaturesCommand;
 use UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands\UnitTesterDocumenterCommand;
@@ -62,6 +63,7 @@ class UnitTesterDocumenterServiceProvider extends ServiceProvider
             TestBrowserCommand::class,
             TestFeaturesCommand::class,
             DocTestDocumentCommand::class,
+            DocTestPruneCommand::class,
         ]);
     }
 }

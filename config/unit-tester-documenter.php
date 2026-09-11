@@ -97,4 +97,15 @@ return [
         'acknowledged_by' => [],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Test Artifact Pruning & Retention
+    |--------------------------------------------------------------------------
+    |
+    | Default number of days to retain test logs, generated reports, and
+    | Playwright visual snapshot directories when running doctest:prune.
+    |
+    */
+    'prune_retention_days' => (int) env('DOCTEST_PRUNE_RETENTION_DAYS', 7),
+
 ];

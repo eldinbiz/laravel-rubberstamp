@@ -147,6 +147,46 @@ php artisan test:document
 | `-i`, `--interactive` | Interactively configure metadata & sign-offs before execution | `php artisan doctest:features -i` |
 | `--no-doc` | Skip corporate documentation generation | `php artisan doctest:features --no-doc` |
 
+### Pruning Test Artifacts & Logs
+
+Purge obsolete test execution logs, generated corporate HTML reports, and Playwright visual snapshots to reclaim disk space:
+
+```bash
+# Prune artifacts older than the default retention period (7 days)
+php artisan doctest:prune
+
+# Dry run: preview candidate items and reclaimed disk space without deleting
+php artisan doctest:prune --dry-run
+
+# Prune artifacts older than 48 hours
+php artisan doctest:prune --hours=48 --force
+
+# Retain only the latest 10 test runs and prune older ones
+php artisan doctest:prune --keep=10 --force
+
+# Prune only specific artifact types ('reports', 'logs', 'snapshots')
+php artisan doctest:prune --type=snapshots --force
+
+# Prune all test artifacts (requires 2-step confirmation unless --force is used)
+php artisan doctest:prune -a
+php artisan doctest:prune --all --force
+
+# Backward-compatible alias
+php artisan test:prune
+```
+
+### Available Pruning Options
+
+| Option | Description | Example |
+| :--- | :--- | :--- |
+| `-a`, `--all` | Prune all test artifacts regardless of age (prompts two-step confirmation) | `php artisan doctest:prune -a` |
+| `--hours=` | Prune artifacts older than specified hours | `--hours=24` |
+| `--days=` | Prune artifacts older than specified days | `--days=14` |
+| `--keep=` | Keep the latest N test runs and prune older ones | `--keep=5` |
+| `--type=` | Limit pruning to a specific type (`all`, `reports`, `logs`, `snapshots`) | `--type=reports` |
+| `--dry-run` | Simulate pruning and display matching files without deleting | `--dry-run` |
+| `--force` | Force deletion without confirmation prompt | `--force` |
+
 ## Changelog
 
 Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
