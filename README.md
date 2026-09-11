@@ -71,7 +71,7 @@ php artisan doctest
 
 ### Running Tests with Automated Corporate Documentation
 
-Execute Pest tests with automatic config/view cache clearing, `doctest-reports/test-log/` logging, and print-ready HTML & Markdown report compilation:
+Execute Pest tests with automatic config/view cache clearing, `doctest-reports/test-log/` logging, and print-ready HTML report compilation:
 
 ```bash
 # Run tests and generate corporate audit reports
@@ -118,7 +118,7 @@ php artisan test:browser
 
 ### Standalone Documentation Compiler
 
-Generate or re-compile corporate HTML and Markdown reports from existing test logs without re-running test suites:
+Generate or re-compile corporate HTML reports from existing test logs without re-running test suites:
 
 ```bash
 # Compile documentation for the latest test run

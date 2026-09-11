@@ -99,7 +99,6 @@ trait InteractsWithDocTestOptions
      *     run_name: string,
      *     document_id: string,
      *     html_path: string,
-     *     markdown_path: string,
      * }|null
      */
     protected function generateAndRenderReport(
@@ -145,6 +144,7 @@ trait InteractsWithDocTestOptions
         $metadata = [
             'run_name' => $runName,
             'document_id' => $resolver->resolveDocumentId($docOptions['document_id_prefix'], $timestamp),
+            'document_id_prefix' => $docOptions['document_id_prefix'],
             'sop' => $docOptions['sop'],
             'author' => $docOptions['author'],
             'executed_at' => now()->format('Y-m-d H:i:s T'),
@@ -160,7 +160,6 @@ trait InteractsWithDocTestOptions
         $report = $generator->generate($metadata, $parsedData);
 
         $htmlUrl = $this->formatFileUrl($report['html_path']);
-        $mdUrl = $this->formatFileUrl($report['markdown_path']);
 
         $this->newLine();
         $this->line('<fg=cyan;options=bold>=================================================================</>');
@@ -173,9 +172,6 @@ trait InteractsWithDocTestOptions
         $this->newLine();
         $this->line(' <fg=yellow;options=bold>Print-Ready HTML Report:</>');
         $this->line("   <fg=white>{$htmlUrl}</>");
-        $this->newLine();
-        $this->line(' <fg=yellow;options=bold>Markdown Audit Record:</>');
-        $this->line("   <fg=white>{$mdUrl}</>");
         $this->line('<fg=cyan;options=bold>=================================================================</>');
         $this->newLine();
 

@@ -70,7 +70,7 @@ return [
     | Corporate Documentation & Evidence Settings
     |--------------------------------------------------------------------------
     |
-    | Configuration for automated print-ready HTML and Markdown test reports
+    | Configuration for automated print-ready HTML test reports
     | generated for corporate SOP, QA compliance, and audit sign-offs.
     |
     */

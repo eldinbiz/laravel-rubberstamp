@@ -36,7 +36,7 @@ final class DocTestDocumentCommand extends Command
     /**
      * The console command description.
      */
-    protected $description = 'Generate or regenerate corporate HTML and Markdown test documentation from existing test logs.';
+    protected $description = 'Generate or regenerate corporate HTML test documentation from existing test logs.';
 
     /**
      * Execute the console command.

@@ -14,7 +14,7 @@ final class CorporateReportGenerator
     ) {}
 
     /**
-     * Generate both HTML and Markdown corporate reports and save to disk.
+     * Generate print-ready corporate HTML report and save to disk.
      *
      * @param  array{
      *     run_name: string,
@@ -66,7 +66,6 @@ final class CorporateReportGenerator
      *     run_name: string,
      *     document_id: string,
      *     html_path: string,
-     *     markdown_path: string,
      * }
      */
     public function generate(array $metadata, array $testData): array
@@ -81,19 +80,22 @@ final class CorporateReportGenerator
 
         $runName = $metadata['run_name'];
         $htmlFile = $outputDir.DIRECTORY_SEPARATOR."{$runName}.html";
-        $markdownFile = $outputDir.DIRECTORY_SEPARATOR."{$runName}.md";
+
+        $testCasePrefix = $this->resolveTestCasePrefix($metadata);
+        $testData['suites'] = $this->assignTestCaseIds($testData['suites'] ?? [], $testCasePrefix);
+        [$testData['suites'], $testData['screenshots']] = $this->correlateEvidenceWithTestCases(
+            $testData['suites'],
+            $testData['screenshots'] ?? []
+        );
 
         $htmlContent = $this->buildHtml($metadata, $testData);
-        $markdownContent = $this->buildMarkdown($metadata, $testData);
 
         file_put_contents($htmlFile, $htmlContent);
-        file_put_contents($markdownFile, $markdownContent);
 
         return [
             'run_name' => $runName,
             'document_id' => $metadata['document_id'],
             'html_path' => $htmlFile,
-            'markdown_path' => $markdownFile,
         ];
     }
 
@@ -109,10 +111,17 @@ final class CorporateReportGenerator
         $verdictClass = $isPassed ? 'status-passed' : 'status-failed';
         $verdictBg = $isPassed ? '#10b981' : '#ef4444';
 
+        $testCasePrefix = $this->resolveTestCasePrefix($meta);
+        $suites = $this->assignTestCaseIds($data['suites'] ?? [], $testCasePrefix);
+        [$suites, $screenshots] = $this->correlateEvidenceWithTestCases(
+            $suites,
+            $data['screenshots'] ?? []
+        );
+
         $logoHtml = $this->renderLogoHtml();
-        $suitesRows = $this->renderHtmlSuitesRows($data['suites'] ?? []);
-        $detailedCasesHtml = $this->renderHtmlDetailedCases($data['suites'] ?? []);
-        $screenshotsHtml = $this->renderHtmlScreenshots($data['screenshots'] ?? []);
+        $suitesRows = $this->renderHtmlSuitesRows($suites);
+        $detailedCasesHtml = $this->renderHtmlDetailedCases($suites);
+        $screenshotsHtml = $this->renderHtmlScreenshots($screenshots);
         $signoffHtml = $this->renderHtmlSignoff($meta);
 
         $docId = htmlspecialchars((string) $meta['document_id'], ENT_QUOTES, 'UTF-8');
@@ -151,6 +160,14 @@ final class CorporateReportGenerator
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        :target {
+            scroll-margin-top: 24px;
         }
 
         * {
@@ -348,6 +365,48 @@ final class CorporateReportGenerator
             border-bottom: none;
         }
 
+        .case-id {
+            display: inline-block;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: #334155;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            margin-left: 6px;
+        }
+
+        .case-evidence-link {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            color: inherit;
+        }
+
+        .case-evidence-link:hover .case-id {
+            background-color: #e2e8f0;
+            border-color: #94a3b8;
+        }
+
+        .back-to-case {
+            font-size: 11px;
+            color: #64748b;
+            text-decoration: none;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            font-weight: 500;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .back-to-case:hover {
+            color: #0f172a;
+            background: #e2e8f0;
+        }
+
         .failure-trace {
             background: #fff1f2;
             border: 1px solid #fecdd3;
@@ -541,185 +600,6 @@ final class CorporateReportGenerator
 HTML;
     }
 
-    /**
-     * Build standard corporate Markdown document.
-     *
-     * @param  array<string, mixed>  $meta
-     * @param  array<string, mixed>  $data
-     */
-    public function buildMarkdown(array $meta, array $data): string
-    {
-        $docId = (string) $meta['document_id'];
-        $sop = (string) $meta['sop'];
-        $author = (string) $meta['author'];
-        $executedAt = (string) $meta['executed_at'];
-        $company = (string) $meta['company_name'];
-        $classification = (string) $meta['classification'];
-        $branch = (string) ($meta['git']['branch'] ?? 'main');
-        $commit = (string) ($meta['git']['commit'] ?? 'N/A');
-        $stack = (string) $meta['runtime_stack'];
-
-        $totalTests = (int) ($data['total_tests'] ?? 0);
-        $passedTests = (int) ($data['passed_tests'] ?? 0);
-        $failedTests = (int) ($data['failed_tests'] ?? 0);
-        $totalAssertions = (int) ($data['total_assertions'] ?? 0);
-        $duration = (string) ($data['duration'] ?? '0.00s');
-        $suitesCount = count($data['suites'] ?? []);
-        $passRate = $totalTests > 0 ? round(($passedTests / $totalTests) * 100, 1) : 0;
-        $verdict = (string) ($data['verdict'] ?? 'UNKNOWN');
-
-        $out = [];
-        $out[] = '# Formal Test Execution Record';
-        $out[] = '### Quality Assurance & Compliance Audit Evidence';
-        $out[] = "**System:** {$company}  ";
-        $out[] = '**Organization / Logo:** `[ COMPANY LOGO ]`';
-        $out[] = '';
-        $out[] = '---';
-        $out[] = '';
-        $out[] = '## 1. Document Control & Audit Metadata';
-        $out[] = '';
-        $out[] = '| Field | Value | Field | Value |';
-        $out[] = '| :--- | :--- | :--- | :--- |';
-        $out[] = "| **Document ID** | `{$docId}` | **SOP Reference** | `{$sop}` |";
-        $out[] = "| **Author (Tester)** | {$author} | **Execution Timestamp** | `{$executedAt}` |";
-        $out[] = "| **Git Branch** | `{$branch}` | **Git Commit** | `{$commit}` |";
-        $out[] = "| **Environment** | `testing` | **Classification** | `{$classification}` |";
-        $out[] = "| **Runtime Stack** | `{$stack}` | | |";
-        $out[] = '';
-        $out[] = '---';
-        $out[] = '';
-        $out[] = '## 2. Executive Test Verdict & Summary';
-        $out[] = '';
-        $out[] = '| Metric | Result | Metric | Result |';
-        $out[] = '| :--- | :--- | :--- | :--- |';
-        $out[] = "| **Status Verdict** | **{$verdict} ({$passRate}%)** | **Total Tests** | {$totalTests} |";
-        $out[] = "| **Passed Tests** | {$passedTests} | **Failed Tests** | {$failedTests} |";
-        $out[] = "| **Total Assertions** | {$totalAssertions} | **Execution Time** | {$duration} |";
-        $out[] = "| **Total Test Suites** | {$suitesCount} | **Audit Compliance** | ".($verdict === 'PASSED' ? 'ACCEPTED' : 'REJECTED').' |';
-        $out[] = '';
-        $out[] = '---';
-        $out[] = '';
-        $out[] = '## 3. Test Suites Summary Breakdown';
-        $out[] = '';
-        $out[] = '| Test Suite (File Path) | Tests | Passed | Failed | Duration | Status |';
-        $out[] = '| :--- | :---: | :---: | :---: | :---: | :---: |';
-
-        foreach ($data['suites'] ?? [] as $s) {
-            $file = (string) $s['file'];
-            $t = (int) $s['total'];
-            $p = (int) $s['passed'];
-            $f = (int) $s['failed'];
-            $d = (string) $s['duration'];
-            $st = (string) $s['status'];
-            $out[] = "| `{$file}` | {$t} | {$p} | {$f} | {$d} | `{$st}` |";
-        }
-
-        $out[] = '';
-        $out[] = '---';
-        $out[] = '';
-        $out[] = '## 4. Detailed Test Case Execution Evidence';
-        $out[] = '';
-
-        foreach ($data['suites'] ?? [] as $suite) {
-            $suiteFile = (string) $suite['file'];
-            $out[] = "### Suite: `{$suiteFile}`";
-
-            foreach ($suite['cases'] ?? [] as $c) {
-                $statusIcon = $c['status'] === 'PASSED' ? '[x] **PASSED**' : '[ ] **FAILED**';
-                $caseName = (string) $c['name'];
-                $caseDuration = (string) $c['duration'];
-                $assertions = (int) ($c['assertions'] ?? 1);
-                $out[] = "- {$statusIcon} `{$caseName}` *({$assertions} assertions, {$duration})*";
-
-                if ($c['status'] === 'FAILED' && ! empty($c['failure'])) {
-                    $msg = trim((string) $c['failure']['message']);
-                    $loc = trim((string) $c['failure']['location']);
-                    $snip = trim((string) $c['failure']['snippet']);
-
-                    $out[] = '';
-                    $out[] = '> **FAILURE AUDIT TRACE**';
-                    $out[] = "> - **Error:** {$msg}";
-                    $out[] = "> - **Location:** `{$loc}`";
-
-                    if ($snip !== '') {
-                        $out[] = '> ```';
-                        foreach (explode("\n", $snip) as $snipLine) {
-                            $out[] = "> {$snipLine}";
-                        }
-                        $out[] = '> ```';
-                    }
-                    $out[] = '';
-                }
-            }
-            $out[] = '';
-        }
-
-        if (! empty($data['screenshots'])) {
-            $out[] = '---';
-            $out[] = '';
-            $out[] = '## 5. Browser Test Visual Evidence & Screenshot Gallery';
-            $out[] = '';
-
-            foreach ($data['screenshots'] as $shot) {
-                $testCase = (string) $shot['test_case'];
-                $suite = (string) $shot['suite'];
-                $relPath = (string) $shot['relative_path'];
-                $out[] = "### Test: `{$suite}` &rarr; `{$testCase}`";
-                $out[] = "- **Snapshot File:** `{$relPath}`";
-                $out[] = "! [{$testCase}]({$relPath})";
-                $out[] = '';
-            }
-        }
-
-        $out[] = '---';
-        $out[] = '';
-        $out[] = '## 6. Formal Sign-Off Approval Sheet';
-        $out[] = '';
-        $out[] = '### Prepared By';
-        $out[] = '| Name | Date | Role | Signature |';
-        $out[] = '| :--- | :--- | :--- | :--- |';
-        $execDate = substr((string) $meta['executed_at'], 0, 10);
-        $out[] = "| {$author} | {$execDate} | Developer (Test Executor) | Verified System Log |";
-        $out[] = '';
-
-        if (! empty($meta['reviewed_by'])) {
-            $out[] = '### Reviewed By';
-            $out[] = '| Name | Date | Role | Signature |';
-            $out[] = '| :--- | :--- | :--- | :--- |';
-            foreach ($meta['reviewed_by'] as $row) {
-                $name = $row['name'] !== '' ? $row['name'] : '________________________';
-                $role = $row['role'];
-                $out[] = "| {$name} | ____________ | {$role} | ________________________ |";
-            }
-            $out[] = '';
-        }
-
-        if (! empty($meta['approved_by'])) {
-            $out[] = '### Approved By';
-            $out[] = '| Name | Date | Role | Signature |';
-            $out[] = '| :--- | :--- | :--- | :--- |';
-            foreach ($meta['approved_by'] as $row) {
-                $name = $row['name'] !== '' ? $row['name'] : '________________________';
-                $role = $row['role'];
-                $out[] = "| {$name} | ____________ | {$role} | ________________________ |";
-            }
-            $out[] = '';
-        }
-
-        if (! empty($meta['acknowledged_by'])) {
-            $out[] = '### Acknowledged By';
-            $out[] = '| Name | Date | Role | Signature |';
-            $out[] = '| :--- | :--- | :--- | :--- |';
-            foreach ($meta['acknowledged_by'] as $row) {
-                $name = $row['name'] !== '' ? $row['name'] : '________________________';
-                $role = $row['role'];
-                $out[] = "| {$name} | ____________ | {$role} | ________________________ |";
-            }
-            $out[] = '';
-        }
-
-        return implode("\n", $out);
-    }
 
     /**
      * Render HTML suites breakdown table rows.
@@ -776,6 +656,9 @@ HTML;
 
             $casesHtml = '';
             foreach ($suite['cases'] ?? [] as $case) {
+                $caseId = htmlspecialchars((string) ($case['test_case_id'] ?? ''), ENT_QUOTES, 'UTF-8');
+                $caseIdLower = strtolower($caseId);
+                $hasEvidence = ! empty($case['has_evidence']);
                 $caseName = htmlspecialchars((string) $case['name'], ENT_QUOTES, 'UTF-8');
                 $caseStatus = (string) $case['status'];
                 $caseDuration = htmlspecialchars((string) $case['duration'], ENT_QUOTES, 'UTF-8');
@@ -789,9 +672,10 @@ HTML;
                     $fMsg = htmlspecialchars((string) $case['failure']['message'], ENT_QUOTES, 'UTF-8');
                     $fLoc = htmlspecialchars((string) $case['failure']['location'], ENT_QUOTES, 'UTF-8');
                     $fSnip = htmlspecialchars((string) $case['failure']['snippet'], ENT_QUOTES, 'UTF-8');
+                    $failureHeader = $caseId !== '' ? "FAILURE AUDIT TRACE [{$caseId}]:" : 'FAILURE AUDIT TRACE:';
                     $failureHtml = <<<HTML
                     <div class="failure-trace">
-<strong>FAILURE AUDIT TRACE:</strong>
+<strong>{$failureHeader}</strong>
 Location: {$fLoc}
 Error: {$fMsg}
 
@@ -800,11 +684,22 @@ Error: {$fMsg}
 HTML;
                 }
 
+                if ($hasEvidence && $caseId !== '') {
+                    $caseIdHtml = "<a href=\"#evidence-{$caseIdLower}\" class=\"case-evidence-link\" title=\"Jump to visual snapshot evidence\"><code class=\"case-id\" style=\"cursor: pointer;\">{$caseId} <span style=\"font-size: 10px;\">📷</span></code></a>";
+                    $caseNameHtml = "<a href=\"#evidence-{$caseIdLower}\" style=\"margin-left: 8px; font-weight: 500; color: inherit; text-decoration: none;\" title=\"Jump to visual snapshot evidence\">{$caseName}</a>";
+                } else {
+                    $caseIdHtml = $caseId !== '' ? "<code class=\"case-id\">{$caseId}</code>" : '';
+                    $caseNameHtml = "<span style=\"margin-left: 8px; font-weight: 500;\">{$caseName}</span>";
+                }
+
+                $rowAnchorId = $caseId !== '' ? "id=\"case-{$caseIdLower}\"" : '';
+
                 $casesHtml .= <<<HTML
-                <div class="case-row">
+                <div class="case-row" {$rowAnchorId}>
                     <div>
                         {$caseBadge}
-                        <span style="margin-left: 8px; font-weight: 500;">{$caseName}</span>
+                        {$caseIdHtml}
+                        {$caseNameHtml}
                     </div>
                     <div style="color: #64748b; font-size: 11px;">{$caseDuration}</div>
                 </div>
@@ -842,10 +737,24 @@ HTML;
             $testCase = htmlspecialchars((string) $shot['test_case'], ENT_QUOTES, 'UTF-8');
             $suite = htmlspecialchars((string) $shot['suite'], ENT_QUOTES, 'UTF-8');
             $base64 = (string) $shot['base64'];
+            $caseId = htmlspecialchars((string) ($shot['test_case_id'] ?? ''), ENT_QUOTES, 'UTF-8');
+            $caseIdLower = strtolower($caseId);
+
+            $anchorAttr = $caseId !== '' ? "id=\"evidence-{$caseIdLower}\"" : '';
+            $caseBadge = $caseId !== '' ? "<code class=\"case-id\">{$caseId}</code>" : '';
+            $backLink = $caseId !== ''
+                ? "<a href=\"#case-{$caseIdLower}\" class=\"back-to-case\" title=\"Return to test case in execution record\">&uarr; Back to Case</a>"
+                : '';
 
             $items .= <<<HTML
-            <div class="screenshot-item">
-                <div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">{$suite} &rarr; {$testCase}</div>
+            <div class="screenshot-item" {$anchorAttr}>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <div style="font-weight: 700; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                        {$caseBadge}
+                        <span>{$suite} &rarr; {$testCase}</span>
+                    </div>
+                    {$backLink}
+                </div>
                 <div class="screenshot-meta">Visual snapshot evidence captured during browser execution</div>
                 <img src="{$base64}" alt="{$testCase}" class="screenshot-img" />
             </div>
@@ -962,5 +871,157 @@ HTML;
             <text x="52" y="38" fill="#64748B" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="500">Official Audit Record</text>
         </svg>
 HTML;
+    }
+
+    /**
+     * Resolve test case prefix derived from Document ID prefix using CASE token.
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    public function resolveTestCasePrefix(array $meta): string
+    {
+        $prefix = isset($meta['document_id_prefix']) && is_string($meta['document_id_prefix'])
+            ? $meta['document_id_prefix']
+            : null;
+        $docId = isset($meta['document_id']) && is_string($meta['document_id'])
+            ? $meta['document_id']
+            : null;
+
+        return (new AuditMetadataResolver($this->basePath))->resolveTestCasePrefix($prefix, $docId);
+    }
+
+    /**
+     * Assign sequential test case IDs to all cases across suites.
+     *
+     * @param  array<int, array<string, mixed>>  $suites
+     * @return array<int, array<string, mixed>>
+     */
+    public function assignTestCaseIds(array $suites, string $prefix): array
+    {
+        $counter = 1;
+        foreach ($suites as $sIndex => $suite) {
+            if (! isset($suite['cases']) || ! is_array($suite['cases'])) {
+                continue;
+            }
+
+            foreach ($suite['cases'] as $cIndex => $case) {
+                if (empty($case['test_case_id'])) {
+                    $suites[$sIndex]['cases'][$cIndex]['test_case_id'] = $prefix.$counter;
+                }
+                $counter++;
+            }
+        }
+
+        return $suites;
+    }
+
+    /**
+     * Correlate screenshots with test suites and test cases.
+     *
+     * @param  array<int, array<string, mixed>>  $suites
+     * @param  array<int, array<string, mixed>>  $screenshots
+     * @return array{0: array<int, array<string, mixed>>, 1: array<int, array<string, mixed>>}
+     */
+    public function correlateEvidenceWithTestCases(array $suites, array $screenshots): array
+    {
+        if (empty($screenshots) || empty($suites)) {
+            return [$suites, $screenshots];
+        }
+
+        foreach ($screenshots as $shotIdx => $shot) {
+            $shotSuite = (string) ($shot['suite'] ?? '');
+            $shotCase = (string) ($shot['test_case'] ?? '');
+            $matchedCaseId = null;
+
+            // 1. Match on suite file/name and case description
+            foreach ($suites as $sIdx => $suite) {
+                $suiteFile = (string) ($suite['file'] ?? '');
+                $suiteName = (string) ($suite['name'] ?? '');
+
+                $suiteMatches = ($suiteFile === $shotSuite)
+                    || ($suiteName === $shotSuite)
+                    || (basename($suiteFile) === basename($shotSuite))
+                    || (str_replace('\\', '/', $suiteName) === str_replace('\\', '/', $shotSuite))
+                    || (str_replace(['-', '_', '\\', '/', '.'], '', strtolower($suiteName)) === str_replace(['-', '_', '\\', '/', '.'], '', strtolower($shotSuite)))
+                    || (str_replace(['-', '_', '\\', '/', '.'], '', strtolower($suiteFile)) === str_replace(['-', '_', '\\', '/', '.'], '', strtolower($shotSuite)));
+
+                if (! $suiteMatches) {
+                    continue;
+                }
+
+                foreach ($suite['cases'] ?? [] as $cIdx => $case) {
+                    $caseName = (string) ($case['name'] ?? '');
+
+                    if ($this->matchesTestCase($caseName, $shotCase)) {
+                        $caseId = (string) ($case['test_case_id'] ?? '');
+                        if ($caseId !== '') {
+                            $screenshots[$shotIdx]['test_case_id'] = $caseId;
+                            $screenshots[$shotIdx]['test_case'] = $caseName;
+                            $suites[$sIdx]['cases'][$cIdx]['has_evidence'] = true;
+                            $suites[$sIdx]['cases'][$cIdx]['evidence_id'] = 'evidence-'.strtolower($caseId);
+                            $matchedCaseId = $caseId;
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            // 2. Fallback: match by case description across all suites
+            if ($matchedCaseId === null) {
+                foreach ($suites as $sIdx => $suite) {
+                    foreach ($suite['cases'] ?? [] as $cIdx => $case) {
+                        $caseName = (string) ($case['name'] ?? '');
+
+                        if ($this->matchesTestCase($caseName, $shotCase)) {
+                            $caseId = (string) ($case['test_case_id'] ?? '');
+                            if ($caseId !== '') {
+                                $screenshots[$shotIdx]['test_case_id'] = $caseId;
+                                $screenshots[$shotIdx]['test_case'] = $caseName;
+                                $suites[$sIdx]['cases'][$cIdx]['has_evidence'] = true;
+                                $suites[$sIdx]['cases'][$cIdx]['evidence_id'] = 'evidence-'.strtolower($caseId);
+                                break 2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return [$suites, $screenshots];
+    }
+
+    /**
+     * Check if screenshot case description matches suite test case name.
+     */
+    private function matchesTestCase(string $caseName, string $shotCase): bool
+    {
+        $normCase = strtolower(trim($caseName));
+        $normShot = strtolower(trim($shotCase));
+
+        if ($normCase === $normShot) {
+            return true;
+        }
+
+        // Canonical form: collapse all non-alphanumeric chars into single spaces
+        $canonCase = trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/[^a-zA-Z0-9]+/', ' ', $normCase)));
+        $canonShot = trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/[^a-zA-Z0-9]+/', ' ', $normShot)));
+
+        if ($canonCase !== '' && $canonShot !== '') {
+            if ($canonCase === $canonShot || str_contains($canonCase, $canonShot) || str_contains($canonShot, $canonCase)) {
+                return true;
+            }
+        }
+
+        // Alphanumeric-only form (strips all whitespace and punctuation)
+        $alphaCase = (string) preg_replace('/[^a-z0-9]/', '', $normCase);
+        $alphaShot = (string) preg_replace('/[^a-z0-9]/', '', $normShot);
+
+        if ($alphaCase !== '' && $alphaShot !== '') {
+            if ($alphaCase === $alphaShot || str_contains($alphaCase, $alphaShot) || str_contains($alphaShot, $alphaCase)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

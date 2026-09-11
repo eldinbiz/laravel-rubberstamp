@@ -70,6 +70,41 @@ final class AuditMetadataResolver
     }
 
     /**
+     * Resolve Test Case ID prefix derived from Document ID prefix using CASE token.
+     */
+    public function resolveTestCasePrefix(?string $cliPrefix = null, ?string $docId = null): string
+    {
+        if (is_string($cliPrefix) && trim($cliPrefix) !== '') {
+            $cleanPrefix = rtrim(trim($cliPrefix), '-_');
+            if ($cleanPrefix !== '') {
+                return "{$cleanPrefix}-CASE-";
+            }
+        }
+
+        if (is_string($docId) && trim($docId) !== '') {
+            if (preg_match('/^(.*?)-(?:\d{8}[-_]\d{6}|\d{8}-\d{6}|\d{4,}.*)$/', trim($docId), $matches)) {
+                $clean = rtrim(trim($matches[1]), '-_');
+                if ($clean !== '') {
+                    return "{$clean}-CASE-";
+                }
+            }
+
+            $lastDash = strrpos(trim($docId), '-');
+            if ($lastDash !== false && $lastDash > 0) {
+                $clean = rtrim(substr(trim($docId), 0, $lastDash), '-_');
+                if ($clean !== '') {
+                    return "{$clean}-CASE-";
+                }
+            }
+        }
+
+        $rawPrefix = (string) config('unit-tester-documenter.document_id_prefix', 'DOC-TEST-');
+        $cleanPrefix = rtrim(trim($rawPrefix), '-_');
+
+        return ($cleanPrefix !== '' ? $cleanPrefix : 'DOC-TEST').'-CASE-';
+    }
+
+    /**
      * Resolve SOP reference code (or 'N/A').
      */
     public function resolveSop(?string $cliSop = null): string
