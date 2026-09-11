@@ -47,7 +47,7 @@ final class DocTestDocumentCommand extends Command
             ?: config('unit-tester-documenter.pest_log_dir', 'doctest-reports/test-log'));
         $resultsDir = (string) config('unit-tester-documenter.results_dir', 'doctest-reports/browser-test-log');
 
-        $resolved = $this->resolveTargetRun($testLogDir);
+        $resolved = $this->resolveTargetRun($testLogDir, $resultsDir);
 
         if ($resolved === null) {
             $this->error('No test runs found to document. Please run tests first using [php artisan doctest:features] or [php artisan doctest:browser].');
@@ -85,7 +85,7 @@ final class DocTestDocumentCommand extends Command
      *
      * @return array{0: string, 1: string, 2: string}|null
      */
-    private function resolveTargetRun(string $testLogDir): ?array
+    private function resolveTargetRun(string $testLogDir, string $resultsDir): ?array
     {
         $target = $this->argument('run');
 
@@ -99,6 +99,12 @@ final class DocTestDocumentCommand extends Command
                 return [$cleanName, $directPath, $this->extractTimestamp($cleanName)];
             }
 
+            $inBrowserLog = base_path($resultsDir.DIRECTORY_SEPARATOR.$cleanName.'.log');
+
+            if (file_exists($inBrowserLog)) {
+                return [$cleanName, $inBrowserLog, $this->extractTimestamp($cleanName)];
+            }
+
             $inTestLog = base_path($testLogDir.DIRECTORY_SEPARATOR.$cleanName.'.log');
 
             if (file_exists($inTestLog)) {
@@ -110,15 +116,22 @@ final class DocTestDocumentCommand extends Command
             return null;
         }
 
-        $fullDir = base_path($testLogDir);
+        $searchDirs = array_filter([base_path($testLogDir), base_path($resultsDir)], 'is_dir');
 
-        if (! is_dir($fullDir)) {
+        if (empty($searchDirs)) {
             return null;
         }
 
-        $files = glob($fullDir.DIRECTORY_SEPARATOR.'*.log');
+        $files = [];
 
-        if ($files === false || empty($files)) {
+        foreach ($searchDirs as $dir) {
+            $found = glob($dir.DIRECTORY_SEPARATOR.'*.log');
+            if ($found !== false && ! empty($found)) {
+                $files = array_merge($files, $found);
+            }
+        }
+
+        if (empty($files)) {
             return null;
         }
 

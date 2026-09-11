@@ -165,13 +165,10 @@ final class TestBrowserCommand extends Command
         $docOptions = $this->resolveDocOptions($resolver);
 
         $resultsDir = (string) config('unit-tester-documenter.results_dir', 'doctest-reports/browser-test-log');
-        $testLogDir = (string) (config('unit-tester-documenter.test_log_dir')
-            ?: config('unit-tester-documenter.pest_log_dir', 'doctest-reports/test-log'));
 
         $runSnapshotDir = $resultsDir.DIRECTORY_SEPARATOR.$runName;
-        $testLog = $testLogDir.DIRECTORY_SEPARATOR.$runName.'.log';
+        $testLog = $resultsDir.DIRECTORY_SEPARATOR.$runName.'.log';
 
-        $this->ensureDirectoryExists(base_path($testLogDir));
         $this->ensureDirectoryExists(base_path($resultsDir));
         $this->ensureDirectoryExists(base_path($runSnapshotDir));
 

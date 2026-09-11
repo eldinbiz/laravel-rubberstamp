@@ -12,9 +12,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Defines where Pest raw logs and test snapshot images will be stored.
-    | Raw test execution logs (for both feature and browser runs) are stored
-    | in the test-log directory inside doctest-reports. Browser test snapshots
-    | are stored in the browser-test-log directory inside doctest-reports.
+    | Non-browser test execution logs (from doctest:features) are stored in the
+    | test-log directory. Browser test execution logs and Playwright visual
+    | snapshots (from doctest:browser) are stored in the browser-test-log directory.
     |
     */
     'results_dir' => env('BROWSER_TEST_RESULTS_DIR', env('DOCTEST_REPORTS_DIR', 'doctest-reports').'/browser-test-log'),

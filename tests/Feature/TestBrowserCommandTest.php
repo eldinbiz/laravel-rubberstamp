@@ -37,3 +37,9 @@ it('exposes the default package configurations', function () {
         ->and(config('unit-tester-documenter.memory_limit'))->toBe('1024M')
         ->and(config('unit-tester-documenter.cleanup_snapshots_on_failure'))->toBeTrue();
 });
+
+it('resolves browser test artifacts inside results_dir', function () {
+    $resultsDir = config('unit-tester-documenter.results_dir');
+
+    expect($resultsDir)->toBe('doctest-reports/browser-test-log');
+});
