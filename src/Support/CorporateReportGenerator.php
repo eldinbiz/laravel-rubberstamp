@@ -82,10 +82,10 @@ final class CorporateReportGenerator
         $htmlFile = $outputDir.DIRECTORY_SEPARATOR."{$runName}.html";
 
         $testCasePrefix = $this->resolveTestCasePrefix($metadata);
-        $testData['suites'] = $this->assignTestCaseIds($testData['suites'] ?? [], $testCasePrefix);
+        $testData['suites'] = $this->assignTestCaseIds($testData['suites'], $testCasePrefix);
         [$testData['suites'], $testData['screenshots']] = $this->correlateEvidenceWithTestCases(
             $testData['suites'],
-            $testData['screenshots'] ?? []
+            $testData['screenshots'],
         );
 
         $htmlContent = $this->buildHtml($metadata, $testData);
@@ -115,7 +115,7 @@ final class CorporateReportGenerator
         $suites = $this->assignTestCaseIds($data['suites'] ?? [], $testCasePrefix);
         [$suites, $screenshots] = $this->correlateEvidenceWithTestCases(
             $suites,
-            $data['screenshots'] ?? []
+            $data['screenshots'] ?? [],
         );
 
         $logoHtml = $this->renderLogoHtml();
@@ -600,7 +600,6 @@ final class CorporateReportGenerator
 HTML;
     }
 
-
     /**
      * Render HTML suites breakdown table rows.
      *
@@ -954,12 +953,14 @@ HTML;
 
                     if ($this->matchesTestCase($caseName, $shotCase)) {
                         $caseId = (string) ($case['test_case_id'] ?? '');
+
                         if ($caseId !== '') {
                             $screenshots[$shotIdx]['test_case_id'] = $caseId;
                             $screenshots[$shotIdx]['test_case'] = $caseName;
                             $suites[$sIdx]['cases'][$cIdx]['has_evidence'] = true;
                             $suites[$sIdx]['cases'][$cIdx]['evidence_id'] = 'evidence-'.strtolower($caseId);
                             $matchedCaseId = $caseId;
+
                             break 2;
                         }
                     }
@@ -974,11 +975,13 @@ HTML;
 
                         if ($this->matchesTestCase($caseName, $shotCase)) {
                             $caseId = (string) ($case['test_case_id'] ?? '');
+
                             if ($caseId !== '') {
                                 $screenshots[$shotIdx]['test_case_id'] = $caseId;
                                 $screenshots[$shotIdx]['test_case'] = $caseName;
                                 $suites[$sIdx]['cases'][$cIdx]['has_evidence'] = true;
                                 $suites[$sIdx]['cases'][$cIdx]['evidence_id'] = 'evidence-'.strtolower($caseId);
+
                                 break 2;
                             }
                         }

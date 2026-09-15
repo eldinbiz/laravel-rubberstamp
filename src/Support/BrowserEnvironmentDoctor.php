@@ -116,9 +116,9 @@ final class BrowserEnvironmentDoctor
 
                 return [
                     'name' => 'Playwright Package',
-                    'status' => self::STATUS_OK,
-                    'message' => "Found {$version} via npx.",
-                    'suggestion' => null,
+                    'status' => self::STATUS_FAILED,
+                    'message' => "Found {$version} via npx, but pest-plugin-browser requires it installed locally in node_modules.",
+                    'suggestion' => 'Run `npm install -D playwright` in the root directory of your project.',
                 ];
             }
         } catch (Throwable) {
@@ -127,9 +127,9 @@ final class BrowserEnvironmentDoctor
 
         return [
             'name' => 'Playwright Package',
-            'status' => self::STATUS_WARNING,
+            'status' => self::STATUS_FAILED,
             'message' => 'Playwright NPM package not found in project node_modules.',
-            'suggestion' => 'Run `npm install -D playwright` or `npm install --ignore-scripts` to install Playwright.',
+            'suggestion' => 'Run `npm install -D playwright` in the root directory of your project.',
         ];
     }
 
@@ -140,34 +140,58 @@ final class BrowserEnvironmentDoctor
      */
     public function checkChromiumBrowser(): array
     {
-        $binary = $this->detectChromiumBinary();
-
-        if ($binary !== null) {
+        if ($this->configuredChromiumBinary !== null && $this->configuredChromiumBinary !== '' && file_exists($this->configuredChromiumBinary)) {
             return [
                 'name' => 'Chromium / Browser Binary',
                 'status' => self::STATUS_OK,
-                'message' => "Detected browser at: {$binary}",
+                'message' => "Detected configured browser at: {$this->configuredChromiumBinary}",
                 'suggestion' => null,
             ];
         }
 
-        // Check if Playwright cache contains chromium
+        $envPath = getenv('PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH');
+
+        if (is_string($envPath) && $envPath !== '' && file_exists($envPath)) {
+            return [
+                'name' => 'Chromium / Browser Binary',
+                'status' => self::STATUS_OK,
+                'message' => "Detected configured browser at: {$envPath}",
+                'suggestion' => null,
+            ];
+        }
+
+        $expectedRevision = $this->getExpectedPlaywrightChromiumRevision();
         $playwrightCache = $this->findPlaywrightCachedChromium();
 
         if ($playwrightCache !== null) {
+            $msg = $expectedRevision !== null
+                ? "Found Playwright Chromium (revision {$expectedRevision}) in: {$playwrightCache}"
+                : "Found Playwright Chromium in: {$playwrightCache}";
+
             return [
                 'name' => 'Chromium / Browser Binary',
                 'status' => self::STATUS_OK,
-                'message' => "Found Playwright Chromium in: {$playwrightCache}",
+                'message' => $msg,
                 'suggestion' => null,
             ];
         }
+
+        $outdated = $this->findAnyCachedChromium();
+        $outdatedNote = '';
+        if ($outdated !== null && $expectedRevision !== null) {
+            $outdatedBase = basename($outdated);
+            $outdatedNote = " (found incompatible/outdated browser: {$outdatedBase})";
+        }
+
+        $message = $expectedRevision !== null
+            ? "Playwright Chromium browser (revision {$expectedRevision}) is not installed in the browser cache{$outdatedNote}."
+            : 'Playwright Chromium browser is not installed in the browser cache.';
 
         return [
             'name' => 'Chromium / Browser Binary',
             'status' => self::STATUS_FAILED,
-            'message' => 'No Chromium or Playwright browser executable detected.',
-            'suggestion' => 'Run `npx playwright install chromium` or configure PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH in .env.',
+            'message' => $message,
+            'suggestion' => 'Run `npx playwright install chromium` in your project root.',
         ];
     }
 
@@ -285,26 +309,109 @@ final class BrowserEnvironmentDoctor
     }
 
     /**
-     * Look for cached Playwright chromium instances.
+     * Get candidate paths where Playwright stores cached browsers.
+     *
+     * @return list<string>
      */
-    public function findPlaywrightCachedChromium(): ?string
+    public function getPlaywrightCachePaths(): array
     {
-        $pathsToCheck = [];
+        $paths = [];
+
+        $browsersPath = getenv('PLAYWRIGHT_BROWSERS_PATH');
+        if (is_string($browsersPath) && $browsersPath !== '') {
+            $paths[] = $browsersPath;
+        }
 
         if (PHP_OS_FAMILY === 'Windows') {
             $localAppData = getenv('LOCALAPPDATA');
 
             if (is_string($localAppData) && $localAppData !== '') {
-                $pathsToCheck[] = $localAppData.'\\ms-playwright';
+                $paths[] = $localAppData.'\\ms-playwright';
             }
         } else {
             $home = getenv('HOME') ?: '/root';
-            $pathsToCheck[] = $home.'/.cache/ms-playwright';
+            $paths[] = $home.'/.cache/ms-playwright';
         }
+
+        return $paths;
+    }
+
+    /**
+     * Read the required Chromium revision from the project's playwright-core browsers.json.
+     */
+    public function getExpectedPlaywrightChromiumRevision(): ?string
+    {
+        $manifestCandidates = [
+            $this->basePath.DIRECTORY_SEPARATOR.'node_modules'.DIRECTORY_SEPARATOR.'playwright-core'.DIRECTORY_SEPARATOR.'browsers.json',
+            $this->basePath.DIRECTORY_SEPARATOR.'node_modules'.DIRECTORY_SEPARATOR.'playwright'.DIRECTORY_SEPARATOR.'node_modules'.DIRECTORY_SEPARATOR.'playwright-core'.DIRECTORY_SEPARATOR.'browsers.json',
+        ];
+
+        foreach ($manifestCandidates as $manifest) {
+            if (file_exists($manifest)) {
+                $content = @file_get_contents($manifest);
+                if ($content !== false && $content !== '') {
+                    $data = json_decode($content, true);
+                    if (is_array($data) && isset($data['browsers']) && is_array($data['browsers'])) {
+                        foreach ($data['browsers'] as $browser) {
+                            if (isset($browser['name']) && $browser['name'] === 'chromium' && isset($browser['revision'])) {
+                                return (string) $browser['revision'];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Look for cached Playwright chromium instances matching the installed Playwright revision.
+     */
+    public function findPlaywrightCachedChromium(): ?string
+    {
+        $pathsToCheck = $this->getPlaywrightCachePaths();
+        $expectedRevision = $this->getExpectedPlaywrightChromiumRevision();
+
+        foreach ($pathsToCheck as $base) {
+            if (! is_dir($base)) {
+                continue;
+            }
+
+            if ($expectedRevision !== null) {
+                $revisionDir = $base.DIRECTORY_SEPARATOR.'chromium-'.$expectedRevision;
+                if (is_dir($revisionDir)) {
+                    return $revisionDir;
+                }
+
+                $headlessDir = $base.DIRECTORY_SEPARATOR.'chromium_headless_shell-'.$expectedRevision;
+                if (is_dir($headlessDir)) {
+                    return $headlessDir;
+                }
+
+                continue;
+            }
+
+            $matches = glob($base.DIRECTORY_SEPARATOR.'chromium*');
+
+            if ($matches !== false && $matches !== []) {
+                return $matches[0];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Look for any cached Playwright chromium instances (including outdated ones).
+     */
+    public function findAnyCachedChromium(): ?string
+    {
+        $pathsToCheck = $this->getPlaywrightCachePaths();
 
         foreach ($pathsToCheck as $base) {
             if (is_dir($base)) {
-                $matches = glob($base.DIRECTORY_SEPARATOR.'chromium-*');
+                $matches = glob($base.DIRECTORY_SEPARATOR.'chromium*');
 
                 if ($matches !== false && $matches !== []) {
                     return $matches[0];

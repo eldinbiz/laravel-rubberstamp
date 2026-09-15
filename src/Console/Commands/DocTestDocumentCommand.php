@@ -126,6 +126,7 @@ final class DocTestDocumentCommand extends Command
 
         foreach ($searchDirs as $dir) {
             $found = glob($dir.DIRECTORY_SEPARATOR.'*.log');
+
             if ($found !== false && ! empty($found)) {
                 $files = array_merge($files, $found);
             }

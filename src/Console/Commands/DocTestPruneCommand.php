@@ -39,7 +39,8 @@ final class DocTestPruneCommand extends Command
      */
     public function handle(): int
     {
-        $type = strtolower(trim((string) ($this->option('type') ?: 'all')));
+        $rawType = $this->option('type');
+        $type = is_string($rawType) && trim($rawType) !== '' ? strtolower(trim($rawType)) : 'all';
         $validTypes = ['all', 'reports', 'logs', 'snapshots'];
 
         if (! in_array($type, $validTypes, true)) {
@@ -103,7 +104,7 @@ final class DocTestPruneCommand extends Command
                     $item['name'],
                     date('Y-m-d H:i:s', $item['timestamp']),
                     $this->formatBytes($item['size']),
-                ], $toPrune)
+                ], $toPrune),
             );
 
             $this->warn("Dry run: [{$count}] test artifacts ({$formattedTotal}) would be pruned.");
@@ -336,6 +337,7 @@ final class DocTestPruneCommand extends Command
         }
 
         $cutoff = null;
+
         if ($hours !== null) {
             $cutoff = time() - ($hours * 3600);
         } elseif ($days !== null) {
@@ -368,6 +370,7 @@ final class DocTestPruneCommand extends Command
     {
         if (preg_match('/(\d{8}_\d{6})/', $name, $matches)) {
             $date = DateTimeImmutable::createFromFormat('Ymd_His', $matches[1]);
+
             if ($date !== false) {
                 return $date->getTimestamp();
             }

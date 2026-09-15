@@ -42,6 +42,7 @@ return [
     */
     'chromium_binary' => env('PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH'),
     'skip_browser_download' => (bool) env('PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD', true),
+    'browser_timeout' => (int) env('BROWSER_TEST_TIMEOUT', 10_000),
 
     /*
     |--------------------------------------------------------------------------

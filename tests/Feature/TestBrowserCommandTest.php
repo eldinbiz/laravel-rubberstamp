@@ -43,3 +43,16 @@ it('resolves browser test artifacts inside results_dir', function () {
 
     expect($resultsDir)->toBe('doctest-reports/browser-test-log');
 });
+
+it('runs health check by default before executing browser tests', function () {
+    $this->artisan('doctest:browser', ['--target' => 'tests/Browser/NonExistentTest.php'])
+        ->expectsOutputToContain('Browser Testing & Playwright Environment Doctor');
+});
+
+it('bypasses health check when --skip-health-check is supplied', function () {
+    $this->artisan('doctest:browser', [
+        '--skip-health-check' => true,
+        '--target' => 'tests/Browser/NonExistentTest.php',
+    ])
+        ->doesntExpectOutputToContain('Browser Testing & Playwright Environment Doctor');
+});

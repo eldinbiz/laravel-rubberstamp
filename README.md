@@ -116,6 +116,29 @@ php artisan doctest:browser tests/Browser/LoginTest.php -i
 php artisan test:browser
 ```
 
+#### Browser Test Setup (Host Application)
+
+To enable automatic visual snapshot capture during Pest browser runs:
+
+1. In your `tests/TestCase.php`, import the snapshot trait:
+```php
+use UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots;
+
+abstract class TestCase extends BaseTestCase
+{
+    use CreatesApplication;
+    use CapturesBrowserSnapshots;
+}
+```
+
+2. In your `tests/Pest.php`, register the automatic browser snapshot hook:
+```php
+if (class_exists(\UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots::class)) {
+    \UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots::registerPestHooks();
+}
+```
+
+
 ### Standalone Documentation Compiler
 
 Generate or re-compile corporate HTML reports from existing test logs without re-running test suites:

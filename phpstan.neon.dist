@@ -10,3 +10,6 @@ parameters:
         -
             identifier: larastan.noEnvCallsOutsideOfConfig
             path: config/*
+        -
+            identifier: trait.unused
+            path: src/Concerns/*

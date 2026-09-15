@@ -76,6 +76,7 @@ final class AuditMetadataResolver
     {
         if (is_string($cliPrefix) && trim($cliPrefix) !== '') {
             $cleanPrefix = rtrim(trim($cliPrefix), '-_');
+
             if ($cleanPrefix !== '') {
                 return "{$cleanPrefix}-CASE-";
             }
@@ -84,14 +85,17 @@ final class AuditMetadataResolver
         if (is_string($docId) && trim($docId) !== '') {
             if (preg_match('/^(.*?)-(?:\d{8}[-_]\d{6}|\d{8}-\d{6}|\d{4,}.*)$/', trim($docId), $matches)) {
                 $clean = rtrim(trim($matches[1]), '-_');
+
                 if ($clean !== '') {
                     return "{$clean}-CASE-";
                 }
             }
 
             $lastDash = strrpos(trim($docId), '-');
+
             if ($lastDash !== false && $lastDash > 0) {
                 $clean = rtrim(substr(trim($docId), 0, $lastDash), '-_');
+
                 if ($clean !== '') {
                     return "{$clean}-CASE-";
                 }
@@ -271,5 +275,17 @@ final class AuditMetadataResolver
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Format a test class name into a standardized snapshot subdirectory.
+     */
+    public static function formatSnapshotSubdirectory(string $className): string
+    {
+        $className = ltrim((string) preg_replace('/^P\\\\/', '', $className), '\\');
+        $subDir = str_replace(['\\', '/'], '-', $className);
+        $subDir = (string) preg_replace('/[^a-zA-Z0-9_-]/', '-', $subDir);
+
+        return trim((string) preg_replace('/-+/', '-', $subDir), '-');
     }
 }

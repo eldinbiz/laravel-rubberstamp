@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace UnitTesterDocumenter\UnitTesterDocumenter\Console\Concerns;
 
+use Dotenv\Exception\InvalidPathException;
+use Dotenv\Parser\Parser;
+use Dotenv\Store\StoreBuilder;
+use Illuminate\Support\Env;
 use UnitTesterDocumenter\UnitTesterDocumenter\Support\AuditMetadataResolver;
 use UnitTesterDocumenter\UnitTesterDocumenter\Support\CorporateReportGenerator;
 use UnitTesterDocumenter\UnitTesterDocumenter\Support\PestLogParser;
@@ -190,5 +194,75 @@ trait InteractsWithDocTestOptions
         }
 
         return "file://{$normalized}";
+    }
+
+    /**
+     * Clears any set Environment variables set by Laravel's .env if the --env option is empty.
+     */
+    protected function clearEnv(): void
+    {
+        if (! $this->hasOption('env') || ! $this->option('env')) {
+            $path = function_exists('base_path') ? base_path() : (string) getcwd();
+            $environmentPath = $path;
+            $environmentFile = '.env';
+
+            if (function_exists('app')) {
+                /** @var mixed $app */
+                $app = app();
+
+                if (is_object($app) && method_exists($app, 'environmentPath')) {
+                    $environmentPath = (string) $app->environmentPath();
+                }
+
+                if (is_object($app) && method_exists($app, 'environmentFile')) {
+                    $environmentFile = (string) $app->environmentFile();
+                }
+            }
+
+            $vars = $this->getEnvironmentVariables(
+                $environmentPath,
+                $environmentFile,
+            );
+
+            $repository = Env::getRepository();
+
+            foreach ($vars as $name) {
+                $repository->clear($name);
+                unset($_ENV[$name], $_SERVER[$name]);
+                putenv($name);
+            }
+        }
+    }
+
+    /**
+     * Parse variable names from an environment file.
+     *
+     * @return array<int, string>
+     */
+    protected function getEnvironmentVariables(string $path, string $file): array
+    {
+        $fullPath = $path.DIRECTORY_SEPARATOR.$file;
+
+        if (! file_exists($fullPath)) {
+            return [];
+        }
+
+        try {
+            $content = StoreBuilder::createWithNoNames()
+                ->addPath($path)
+                ->addName($file)
+                ->make()
+                ->read();
+        } catch (InvalidPathException) {
+            return [];
+        }
+
+        $vars = [];
+
+        foreach ((new Parser)->parse($content) as $entry) {
+            $vars[] = $entry->getName();
+        }
+
+        return $vars;
     }
 }

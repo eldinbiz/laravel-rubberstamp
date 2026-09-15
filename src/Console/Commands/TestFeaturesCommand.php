@@ -104,10 +104,12 @@ final class TestFeaturesCommand extends Command
 
         $testLogHandle = fopen(base_path($testLog), 'wb');
 
+        $this->clearEnv();
+
         $process = new Process(
             command: $command,
             cwd: base_path(),
-            env: $_ENV,
+            env: null,
             timeout: null,
         );
 

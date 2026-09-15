@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use Illuminate\Console\Command;
+use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Artisan;
+use UnitTesterDocumenter\UnitTesterDocumenter\Console\Concerns\InteractsWithDocTestOptions;
 
 it('registers the doctest:features artisan command', function () {
     $commands = Artisan::all();
@@ -36,4 +39,37 @@ it('handles missing pest executable gracefully', function () {
     ])
         ->expectsOutputToContain('Pest executable could not be found')
         ->assertExitCode(1);
+});
+
+it('clears variables defined in environment file', function () {
+    $tempEnv = (string) tempnam(sys_get_temp_dir(), 'env_test_');
+    file_put_contents($tempEnv, "DOCTEST_CUSTOM_VAR=should_be_cleared\n");
+
+    $_ENV['DOCTEST_CUSTOM_VAR'] = 'should_be_cleared';
+    $_SERVER['DOCTEST_CUSTOM_VAR'] = 'should_be_cleared';
+    putenv('DOCTEST_CUSTOM_VAR=should_be_cleared');
+
+    $command = new class extends Command
+    {
+        use InteractsWithDocTestOptions;
+
+        public function testClear(string $path, string $file): void
+        {
+            $vars = $this->getEnvironmentVariables($path, $file);
+            $repository = Env::getRepository();
+            foreach ($vars as $name) {
+                $repository->clear($name);
+                unset($_ENV[$name], $_SERVER[$name]);
+                putenv($name);
+            }
+        }
+    };
+
+    $command->testClear(dirname($tempEnv), basename($tempEnv));
+
+    expect(isset($_ENV['DOCTEST_CUSTOM_VAR']))->toBeFalse()
+        ->and(isset($_SERVER['DOCTEST_CUSTOM_VAR']))->toBeFalse()
+        ->and(getenv('DOCTEST_CUSTOM_VAR'))->toBeFalse();
+
+    @unlink($tempEnv);
 });

@@ -497,4 +497,3 @@ it('correlates screenshots even when test names contain hyphens, commas, and pun
     @rmdir(dirname($report['html_path']));
     @rmdir($tmpDir);
 });
-

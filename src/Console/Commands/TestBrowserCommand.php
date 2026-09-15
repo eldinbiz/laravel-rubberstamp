@@ -67,11 +67,13 @@ final class TestBrowserCommand extends Command
         }
 
         if (! $this->option('skip-health-check')) {
-            $preflightPassed = $this->runPreflightCheck($doctor);
+            $doctorExitCode = $this->runDoctor($doctor);
 
-            if (! $preflightPassed) {
-                return self::FAILURE;
+            if ($doctorExitCode !== self::SUCCESS) {
+                return $doctorExitCode;
             }
+
+            $this->newLine();
         }
 
         return $this->executeBrowserTests($doctor);
@@ -118,39 +120,6 @@ final class TestBrowserCommand extends Command
         $this->info('All core browser testing dependencies are installed and operational!');
 
         return self::SUCCESS;
-    }
-
-    /**
-     * Run a quick preflight check before starting tests.
-     */
-    private function runPreflightCheck(BrowserEnvironmentDoctor $doctor): bool
-    {
-        $checks = $doctor->checkAll();
-
-        if ($doctor->hasFailures($checks)) {
-            $this->newLine();
-            $this->error('Pre-flight health check detected missing browser testing dependencies:');
-            $this->newLine();
-
-            foreach ($checks as $check) {
-                if ($check['status'] === BrowserEnvironmentDoctor::STATUS_FAILED) {
-                    $this->line("  <fg=red>[FAIL]</> <options=bold>{$check['name']}</>: {$check['message']}");
-
-                    if ($check['suggestion'] !== null) {
-                        $this->line("         <fg=yellow>Remedy:</> {$check['suggestion']}");
-                    }
-                }
-            }
-
-            $this->newLine();
-            $this->line('Run <comment>php artisan test:browser --doctor</comment> for detailed diagnostics,');
-            $this->line('or use <comment>--skip-health-check</comment> to bypass this verification.');
-            $this->newLine();
-
-            return false;
-        }
-
-        return true;
     }
 
     /**
@@ -239,12 +208,21 @@ final class TestBrowserCommand extends Command
 
             $testLogHandle = fopen(base_path($testLog), 'wb');
 
+            $this->clearEnv();
+
+            $browserEnv = [
+                'BROWSER_SNAPSHOT_DIR' => base_path($runSnapshotDir),
+            ];
+
+            if ($chromiumPath !== null) {
+                $browserEnv['PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH'] = $chromiumPath;
+                $browserEnv['PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD'] = '1';
+            }
+
             $process = new Process(
                 command: $command,
                 cwd: base_path(),
-                env: array_merge($_ENV, [
-                    'BROWSER_SNAPSHOT_DIR' => base_path($runSnapshotDir),
-                ]),
+                env: $browserEnv,
                 timeout: null,
             );
 
