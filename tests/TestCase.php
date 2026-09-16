@@ -2,17 +2,22 @@
 
 declare(strict_types=1);
 
-namespace UnitTesterDocumenter\UnitTesterDocumenter\Tests;
+namespace Eldinbiz\RubberStamp\Tests;
 
+use Eldinbiz\RubberStamp\RubberStampServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
-use UnitTesterDocumenter\UnitTesterDocumenter\UnitTesterDocumenterServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
     protected function getPackageProviders($app): array
     {
         return [
-            UnitTesterDocumenterServiceProvider::class,
+            RubberStampServiceProvider::class,
         ];
     }
+}
+
+// Backward compatibility alias
+if (! class_exists(\UnitTesterDocumenter\UnitTesterDocumenter\Tests\TestCase::class, false)) {
+    class_alias(TestCase::class, \UnitTesterDocumenter\UnitTesterDocumenter\Tests\TestCase::class);
 }

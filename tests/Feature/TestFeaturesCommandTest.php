@@ -5,24 +5,26 @@ declare(strict_types=1);
 use Illuminate\Console\Command;
 use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Artisan;
-use UnitTesterDocumenter\UnitTesterDocumenter\Console\Concerns\InteractsWithDocTestOptions;
+use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithDocTestOptions;
 
-it('registers the doctest:features artisan command', function () {
+it('registers the rubberstamp:features artisan command', function () {
     $commands = Artisan::all();
 
-    expect($commands)->toHaveKey('doctest:features');
+    expect($commands)->toHaveKey('rubberstamp:features')
+        ->and($commands)->toHaveKey('doctest:features');
 });
 
-it('registers the doctest:feature, test:features, and test:feature aliases', function () {
-    $command = Artisan::all()['doctest:features'];
+it('registers the doctest:features, doctest:feature, test:features, and test:feature aliases', function () {
+    $command = Artisan::all()['rubberstamp:features'];
 
-    expect($command->getAliases())->toContain('doctest:feature')
+    expect($command->getAliases())->toContain('doctest:features')
+        ->and($command->getAliases())->toContain('doctest:feature')
         ->and($command->getAliases())->toContain('test:features')
         ->and($command->getAliases())->toContain('test:feature');
 });
 
 it('has the expected command definition and options', function () {
-    $command = Artisan::all()['doctest:features'];
+    $command = Artisan::all()['rubberstamp:features'];
 
     expect($command->getDescription())->toContain('Run Pest tests with cache clearing')
         ->and($command->getDefinition()->hasArgument('target'))->toBeTrue()
@@ -33,7 +35,7 @@ it('has the expected command definition and options', function () {
 });
 
 it('handles missing pest executable gracefully', function () {
-    $this->artisan('doctest:features', [
+    $this->artisan('rubberstamp:features', [
         '--pest-path' => '/nonexistent/path/to/pest',
         '--skip-clear' => true,
     ])

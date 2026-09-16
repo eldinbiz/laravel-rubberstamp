@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UnitTesterDocumenter\UnitTesterDocumenter\Support;
+namespace Eldinbiz\RubberStamp\Support;
 
 use Symfony\Component\Process\Process;
 use Throwable;

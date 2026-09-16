@@ -4,39 +4,15 @@ declare(strict_types=1);
 
 namespace UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands;
 
-use Illuminate\Console\Command;
+use Eldinbiz\RubberStamp\Console\Commands\RubberStampCommand;
 
-class UnitTesterDocumenterCommand extends Command
+if (! class_exists(RubberStampCommand::class, false)) {
+    require_once __DIR__.'/RubberStampCommand.php';
+}
+
+/**
+ * @deprecated Use \Eldinbiz\RubberStamp\Console\Commands\RubberStampCommand instead.
+ */
+class UnitTesterDocumenterCommand extends RubberStampCommand
 {
-    /**
-     * The command signature.
-     */
-    protected $signature = 'doctest';
-
-    /**
-     * The command description.
-     */
-    protected $description = 'Run automated tests with documentation and diagnostics (DocTest suite).';
-
-    /**
-     * Execute the console command.
-     */
-    public function handle(): int
-    {
-        $this->newLine();
-        $this->line('<fg=cyan;options=bold>=================================================================</>');
-        $this->line('<fg=cyan;options=bold>                   DocTest Testing Suite                         </>');
-        $this->line('<fg=cyan;options=bold>=================================================================</>');
-        $this->newLine();
-        $this->line(' Available DocTest Commands:');
-        $this->line('  <fg=green>php artisan doctest:features</>   Run Pest tests with auto-documentation and test-log/ logging');
-        $this->line('  <fg=green>php artisan doctest:browser</>    Run browser tests with Playwright diagnostics & snapshots');
-        $this->line('  <fg=green>php artisan doctest:document</>   Compile corporate HTML reports from test logs');
-        $this->line('  <fg=green>php artisan doctest:prune</>      Prune old test logs, corporate reports, and snapshots');
-        $this->newLine();
-        $this->line(' Run any command with <comment>--help</comment> for target options and flags.');
-        $this->line('<fg=cyan;options=bold>=================================================================</>');
-
-        return self::SUCCESS;
-    }
 }

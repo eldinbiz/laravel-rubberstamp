@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use UnitTesterDocumenter\UnitTesterDocumenter\Support\AuditMetadataResolver;
+use Eldinbiz\RubberStamp\Support\AuditMetadataResolver;
 
 test('it formats browser test class name strictly into hyphen separated subdirectory', function (): void {
     expect(AuditMetadataResolver::formatSnapshotSubdirectory('Tests\Browser\RoleManagementTest'))

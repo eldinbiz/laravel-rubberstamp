@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands;
+namespace Eldinbiz\RubberStamp\Console\Commands;
 
+use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithDocTestOptions;
+use Eldinbiz\RubberStamp\Support\AuditMetadataResolver;
 use Illuminate\Console\Command;
 use Symfony\Component\Process\Process;
-use UnitTesterDocumenter\UnitTesterDocumenter\Console\Concerns\InteractsWithDocTestOptions;
-use UnitTesterDocumenter\UnitTesterDocumenter\Support\AuditMetadataResolver;
 
 final class TestFeaturesCommand extends Command
 {
@@ -16,7 +16,7 @@ final class TestFeaturesCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'doctest:features
+    protected $signature = 'rubberstamp:features
         {target? : Optional test file or directory to execute (defaults to running all test suites via phpunit.xml)}
         {--pest-path= : Custom path to Pest binary}
         {--skip-clear : Skip config:clear and view:clear before running tests}
@@ -34,7 +34,7 @@ final class TestFeaturesCommand extends Command
      *
      * @var array<int, string>
      */
-    protected $aliases = ['doctest:feature', 'test:features', 'test:feature'];
+    protected $aliases = ['doctest:features', 'doctest:feature', 'test:features', 'test:feature'];
 
     /**
      * The console command description.
@@ -60,7 +60,9 @@ final class TestFeaturesCommand extends Command
         $resolver = new AuditMetadataResolver(base_path());
         $docOptions = $this->resolveDocOptions($resolver);
 
-        $testLogDir = (string) (config('unit-tester-documenter.test_log_dir')
+        $testLogDir = (string) (config('rubberstamp.test_log_dir')
+            ?: config('rubberstamp.pest_log_dir')
+            ?: config('unit-tester-documenter.test_log_dir')
             ?: config('unit-tester-documenter.pest_log_dir', 'doctest-reports/test-log'));
         $testLog = $testLogDir.DIRECTORY_SEPARATOR.$runName.'.log';
 
@@ -79,7 +81,7 @@ final class TestFeaturesCommand extends Command
             return self::FAILURE;
         }
 
-        $memoryLimit = (string) config('unit-tester-documenter.memory_limit', '1024M');
+        $memoryLimit = (string) config('rubberstamp.memory_limit', config('unit-tester-documenter.memory_limit', '1024M'));
         $forwardedArgs = $this->resolveForwardedArguments();
 
         $rawTarget = $this->argument('target');
@@ -166,6 +168,7 @@ final class TestFeaturesCommand extends Command
     private function resolvePestBinary(): ?string
     {
         $customPath = $this->option('pest-path')
+            ?: config('rubberstamp.pest_binary')
             ?: config('unit-tester-documenter.pest_binary');
 
         if ($customPath !== null && is_string($customPath)) {
@@ -199,6 +202,7 @@ final class TestFeaturesCommand extends Command
 
         foreach ($argv as $index => $token) {
             if (
+                $token === 'rubberstamp:features' || str_ends_with($token, 'rubberstamp:features') ||
                 $token === 'doctest:features' || str_ends_with($token, 'doctest:features') ||
                 $token === 'doctest:feature' || str_ends_with($token, 'doctest:feature') ||
                 $token === 'test:features' || str_ends_with($token, 'test:features') ||

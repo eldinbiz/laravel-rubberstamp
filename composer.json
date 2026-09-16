@@ -1,17 +1,20 @@
 {
   "$schema": "https://getcomposer.org/schema.json",
-  "name": "eldinbiz/unit-tester-documenter",
-  "description": "Run Pest browser tests with Playwright self-health diagnostics, Vite protection, and snapshot documentation.",
+  "name": "eldinbiz/laravel-rubberstamp",
+  "description": "Helping You, corporate slave programmer, to make Test Report your manager will blindly sign without reading.",
   "keywords": [
     "laravel",
-    "vendor-name",
+    "rubberstamp",
+    "audit-trail",
+    "compliance",
+    "pest-reports",
     "unit-tester-documenter"
   ],
-  "homepage": "https://github.com/vendor-name/unit-tester-documenter",
+  "homepage": "https://github.com/eldinbiz/laravel-rubberstamp",
   "license": "MIT",
   "authors": [
     {
-      "name": "Vendor Name",
+      "name": "Eldin Akbar",
       "email": "author@example.com",
       "role": "Developer"
     }
@@ -35,11 +38,13 @@
   },
   "autoload": {
     "psr-4": {
+      "Eldinbiz\\RubberStamp\\": "src/",
       "UnitTesterDocumenter\\UnitTesterDocumenter\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
+      "Eldinbiz\\RubberStamp\\Tests\\": "tests/",
       "UnitTesterDocumenter\\UnitTesterDocumenter\\Tests\\": "tests/",
       "Workbench\\App\\": "workbench/app/",
       "Workbench\\Database\\Factories\\": "workbench/database/factories/",
@@ -90,9 +95,10 @@
   "extra": {
     "laravel": {
       "providers": [
-        "UnitTesterDocumenter\\UnitTesterDocumenter\\UnitTesterDocumenterServiceProvider"
+        "Eldinbiz\\RubberStamp\\RubberStampServiceProvider"
       ],
       "aliases": {
+        "RubberStamp": "Eldinbiz\\RubberStamp\\Facades\\RubberStamp",
         "UnitTesterDocumenter": "UnitTesterDocumenter\\UnitTesterDocumenter\\Facades\\UnitTesterDocumenter"
       }
     }

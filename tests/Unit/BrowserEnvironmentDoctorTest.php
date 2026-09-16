@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use UnitTesterDocumenter\UnitTesterDocumenter\Support\BrowserEnvironmentDoctor;
+use Eldinbiz\RubberStamp\Support\BrowserEnvironmentDoctor;
 
 it('evaluates check failures correctly', function () {
     $doctor = new BrowserEnvironmentDoctor(__DIR__);

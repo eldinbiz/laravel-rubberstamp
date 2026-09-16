@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace UnitTesterDocumenter\UnitTesterDocumenter\Console\Commands;
+namespace Eldinbiz\RubberStamp\Console\Commands;
 
+use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithDocTestOptions;
+use Eldinbiz\RubberStamp\Support\AuditMetadataResolver;
 use Illuminate\Console\Command;
-use UnitTesterDocumenter\UnitTesterDocumenter\Console\Concerns\InteractsWithDocTestOptions;
-use UnitTesterDocumenter\UnitTesterDocumenter\Support\AuditMetadataResolver;
 
 final class DocTestDocumentCommand extends Command
 {
@@ -15,7 +15,7 @@ final class DocTestDocumentCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'doctest:document
+    protected $signature = 'rubberstamp:document
         {run? : Specific run name or log file to document (defaults to latest test run)}
         {--author= : Author/tester name (defaults to git config user.name)}
         {--sop= : SOP policy or RFC ticket code (defaults to N/A)}
@@ -31,7 +31,7 @@ final class DocTestDocumentCommand extends Command
      *
      * @var array<int, string>
      */
-    protected $aliases = ['test:document'];
+    protected $aliases = ['doctest:document', 'test:document'];
 
     /**
      * The console command description.
@@ -43,14 +43,17 @@ final class DocTestDocumentCommand extends Command
      */
     public function handle(): int
     {
-        $testLogDir = (string) (config('unit-tester-documenter.test_log_dir')
+        $testLogDir = (string) (config('rubberstamp.test_log_dir')
+            ?: config('rubberstamp.pest_log_dir')
+            ?: config('unit-tester-documenter.test_log_dir')
             ?: config('unit-tester-documenter.pest_log_dir', 'doctest-reports/test-log'));
-        $resultsDir = (string) config('unit-tester-documenter.results_dir', 'doctest-reports/browser-test-log');
+        $resultsDir = (string) (config('rubberstamp.results_dir')
+            ?: config('unit-tester-documenter.results_dir', 'doctest-reports/browser-test-log'));
 
         $resolved = $this->resolveTargetRun($testLogDir, $resultsDir);
 
         if ($resolved === null) {
-            $this->error('No test runs found to document. Please run tests first using [php artisan doctest:features] or [php artisan doctest:browser].');
+            $this->error('No test runs found to document. Please run tests first using [php artisan rubberstamp:features] or [php artisan rubberstamp:browser].');
 
             return self::FAILURE;
         }

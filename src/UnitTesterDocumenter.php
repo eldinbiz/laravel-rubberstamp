@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace UnitTesterDocumenter\UnitTesterDocumenter;
 
-use UnitTesterDocumenter\UnitTesterDocumenter\Support\BrowserSnapshotManager;
+use Eldinbiz\RubberStamp\RubberStamp;
 
-class UnitTesterDocumenter
+if (! class_exists(RubberStamp::class, false)) {
+    require_once __DIR__.'/RubberStamp.php';
+}
+
+/**
+ * @deprecated Use \Eldinbiz\RubberStamp\RubberStamp instead.
+ */
+class UnitTesterDocumenter extends RubberStamp
 {
-    /**
-     * Register Pest browser hooks for snapshot capturing.
-     */
-    public static function registerPestBrowserHooks(): void
-    {
-        BrowserSnapshotManager::registerPestHooks();
-    }
 }

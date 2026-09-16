@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace UnitTesterDocumenter\UnitTesterDocumenter\Concerns;
+namespace Eldinbiz\RubberStamp\Concerns;
 
-use UnitTesterDocumenter\UnitTesterDocumenter\Support\BrowserSnapshotManager;
+use Eldinbiz\RubberStamp\Support\BrowserSnapshotManager;
 
 trait CapturesBrowserSnapshots
 {
@@ -51,4 +51,9 @@ trait CapturesBrowserSnapshots
     {
         BrowserSnapshotManager::resetActiveBrowserPage();
     }
+}
+
+// Backward compatibility alias
+if (! trait_exists(\UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots::class, false)) {
+    class_alias(CapturesBrowserSnapshots::class, \UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots::class);
 }

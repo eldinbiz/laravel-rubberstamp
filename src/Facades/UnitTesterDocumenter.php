@@ -4,24 +4,16 @@ declare(strict_types=1);
 
 namespace UnitTesterDocumenter\UnitTesterDocumenter\Facades;
 
-use Illuminate\Support\Facades\Facade;
-use UnitTesterDocumenter\UnitTesterDocumenter\Support\BrowserSnapshotManager;
+use Eldinbiz\RubberStamp\Facades\RubberStamp;
+
+if (! class_exists(RubberStamp::class, false)) {
+    require_once __DIR__.'/RubberStamp.php';
+}
 
 /**
- * @see \UnitTesterDocumenter\UnitTesterDocumenter\UnitTesterDocumenter
+ * @deprecated Use \Eldinbiz\RubberStamp\Facades\RubberStamp instead.
+ * @see \Eldinbiz\RubberStamp\RubberStamp
  */
-class UnitTesterDocumenter extends Facade
+class UnitTesterDocumenter extends RubberStamp
 {
-    protected static function getFacadeAccessor(): string
-    {
-        return \UnitTesterDocumenter\UnitTesterDocumenter\UnitTesterDocumenter::class;
-    }
-
-    /**
-     * Register Pest browser hooks without requiring a booted container.
-     */
-    public static function registerPestBrowserHooks(): void
-    {
-        BrowserSnapshotManager::registerPestHooks();
-    }
 }

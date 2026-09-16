@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UnitTesterDocumenter\UnitTesterDocumenter\Support;
+namespace Eldinbiz\RubberStamp\Support;
 
 final class CorporateReportGenerator
 {
@@ -71,7 +71,8 @@ final class CorporateReportGenerator
     public function generate(array $metadata, array $testData): array
     {
         $baseDir = $this->basePath ?? (function_exists('base_path') ? base_path() : getcwd());
-        $reportsSubdir = (string) config('unit-tester-documenter.reports_dir', 'doctest-reports');
+        $reportsSubdir = (string) (config('rubberstamp.reports_dir')
+            ?: config('unit-tester-documenter.reports_dir', 'doctest-reports'));
         $outputDir = rtrim((string) $baseDir, '/\\').DIRECTORY_SEPARATOR.trim($reportsSubdir, '/\\');
 
         if (! is_dir($outputDir)) {
@@ -141,12 +142,22 @@ final class CorporateReportGenerator
             'passRate' => $passRate,
         ];
 
-        $viewName = function_exists('config')
-            ? (string) config('unit-tester-documenter.report_view', 'unit-tester-documenter::report')
-            : 'unit-tester-documenter::report';
+        $configuredView = function_exists('config')
+            ? (string) (config('rubberstamp.report_view') ?: config('unit-tester-documenter.report_view'))
+            : null;
 
-        if (function_exists('view') && view()->exists($viewName)) {
-            return view($viewName, $viewData)->render();
+        $candidateViews = array_filter([
+            $configuredView,
+            'rubberstamp::report',
+            'unit-tester-documenter::report',
+        ]);
+
+        if (function_exists('view')) {
+            foreach ($candidateViews as $candidate) {
+                if (view()->exists($candidate)) {
+                    return view($candidate, $viewData)->render();
+                }
+            }
         }
 
         return $this->buildFallbackHtml($meta, $data, $suites, $screenshots, $viewData);

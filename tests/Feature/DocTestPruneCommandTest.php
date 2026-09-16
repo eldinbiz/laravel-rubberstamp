@@ -15,6 +15,9 @@ beforeEach(function () {
     @mkdir($this->testLogDir, 0777, true);
     @mkdir($this->resultsDir, 0777, true);
 
+    config()->set('rubberstamp.reports_dir', $this->reportsDir);
+    config()->set('rubberstamp.test_log_dir', $this->testLogDir);
+    config()->set('rubberstamp.results_dir', $this->resultsDir);
     config()->set('unit-tester-documenter.reports_dir', $this->reportsDir);
     config()->set('unit-tester-documenter.test_log_dir', $this->testLogDir);
     config()->set('unit-tester-documenter.results_dir', $this->resultsDir);
@@ -26,20 +29,22 @@ afterEach(function () {
     }
 });
 
-it('registers the doctest:prune artisan command', function () {
+it('registers the rubberstamp:prune artisan command', function () {
     $commands = Artisan::all();
 
-    expect($commands)->toHaveKey('doctest:prune');
+    expect($commands)->toHaveKey('rubberstamp:prune')
+        ->and($commands)->toHaveKey('doctest:prune');
 });
 
-it('registers the test:prune alias', function () {
-    $command = Artisan::all()['doctest:prune'];
+it('registers the doctest:prune and test:prune aliases', function () {
+    $command = Artisan::all()['rubberstamp:prune'];
 
-    expect($command->getAliases())->toContain('test:prune');
+    expect($command->getAliases())->toContain('doctest:prune')
+        ->and($command->getAliases())->toContain('test:prune');
 });
 
 it('has the expected command definition and options', function () {
-    $command = Artisan::all()['doctest:prune'];
+    $command = Artisan::all()['rubberstamp:prune'];
 
     expect($command->getDescription())->toContain('Prune old test execution logs')
         ->and($command->getDefinition()->hasOption('hours'))->toBeTrue()
@@ -54,13 +59,13 @@ it('has the expected command definition and options', function () {
 });
 
 it('rejects invalid --type option value', function () {
-    $this->artisan('doctest:prune', ['--type' => 'invalid_type'])
+    $this->artisan('rubberstamp:prune', ['--type' => 'invalid_type'])
         ->expectsOutputToContain('Invalid --type [invalid_type]')
         ->assertExitCode(1);
 });
 
 it('exits successfully when no artifacts are found to prune and displays criteria', function () {
-    $this->artisan('doctest:prune', ['--force' => true])
+    $this->artisan('rubberstamp:prune', ['--force' => true])
         ->expectsOutputToContain('Retention criteria: older than 7 day(s)')
         ->expectsOutputToContain('No test artifacts found matching the pruning criteria')
         ->assertExitCode(0);
@@ -72,7 +77,7 @@ it('previews files in --dry-run without deleting them', function () {
     file_put_contents($reportFile, '<html>Report</html>');
     file_put_contents($logFile, 'Test log content');
 
-    $this->artisan('doctest:prune', [
+    $this->artisan('rubberstamp:prune', [
         '--days' => 1,
         '--dry-run' => true,
     ])
@@ -90,7 +95,7 @@ it('cancels pruning when confirmation is rejected without --force', function () 
 
     $size = strlen('<html>Report</html>');
 
-    $this->artisan('doctest:prune', ['--days' => 1])
+    $this->artisan('rubberstamp:prune', ['--days' => 1])
         ->expectsConfirmation("Are you sure you want to prune [1] test artifacts ({$size} B)?", 'no')
         ->expectsOutputToContain('Pruning cancelled')
         ->assertExitCode(0);
@@ -110,7 +115,7 @@ it('prunes artifacts older than specified days when confirmed with --force', fun
     $recentReport = $this->reportsDir.DIRECTORY_SEPARATOR."test_{$recentTimestamp}.html";
     file_put_contents($recentReport, '<html>Recent Report</html>');
 
-    $this->artisan('doctest:prune', [
+    $this->artisan('rubberstamp:prune', [
         '--days' => 1,
         '--force' => true,
     ])
@@ -126,7 +131,7 @@ it('prunes artifacts older than specified hours with --hours', function () {
     $oldReport = $this->reportsDir.DIRECTORY_SEPARATOR.'test_20200101_120000.html';
     file_put_contents($oldReport, '<html>Old Report</html>');
 
-    $this->artisan('doctest:prune', [
+    $this->artisan('rubberstamp:prune', [
         '--hours' => 2,
         '--force' => true,
     ])
@@ -152,7 +157,7 @@ it('keeps latest N runs when --keep is specified', function () {
     file_put_contents($run3Report, 'Report 3');
 
     // Keep latest 2 runs (run 3 and run 2), prune run 1
-    $this->artisan('doctest:prune', [
+    $this->artisan('rubberstamp:prune', [
         '--keep' => 2,
         '--force' => true,
     ])
@@ -176,7 +181,7 @@ it('filters pruning by artifact --type', function () {
     file_put_contents($log, 'Log');
 
     // Only prune reports
-    $this->artisan('doctest:prune', [
+    $this->artisan('rubberstamp:prune', [
         '--type' => 'reports',
         '--days' => 1,
         '--force' => true,
@@ -194,7 +199,7 @@ it('prunes snapshot directories recursively when --type=snapshots is selected', 
     @mkdir($snapshotDir, 0777, true);
     file_put_contents($snapshotDir.DIRECTORY_SEPARATOR.'screenshot.png', 'fake image');
 
-    $this->artisan('doctest:prune', [
+    $this->artisan('rubberstamp:prune', [
         '--type' => 'snapshots',
         '--days' => 1,
         '--force' => true,
@@ -211,7 +216,7 @@ it('prunes both html and markdown reports under reports directory', function () 
     file_put_contents($htmlReport, '<html>Report</html>');
     file_put_contents($mdReport, '# Markdown Report');
 
-    $this->artisan('doctest:prune', [
+    $this->artisan('rubberstamp:prune', [
         '--type' => 'reports',
         '--days' => 1,
         '--force' => true,
@@ -229,7 +234,7 @@ it('prunes all artifacts with --all after double confirmation', function () {
     file_put_contents($report, 'Recent report');
     file_put_contents($log, 'Recent log');
 
-    $this->artisan('doctest:prune', ['--all' => true])
+    $this->artisan('rubberstamp:prune', ['--all' => true])
         ->expectsOutputToContain('Retention criteria: all test artifacts regardless of age')
         ->expectsConfirmation('Are you sure you want to prune ALL [2] test artifacts (23 B)?', 'yes')
         ->expectsConfirmation('This will permanently delete all test reports, logs, and browser snapshots. Do you wish to continue?', 'yes')
@@ -244,7 +249,7 @@ it('cancels --all pruning if first confirmation prompt is rejected', function ()
     $report = $this->reportsDir.DIRECTORY_SEPARATOR.'test_recent.html';
     file_put_contents($report, 'Recent report');
 
-    $this->artisan('doctest:prune', ['--all' => true])
+    $this->artisan('rubberstamp:prune', ['--all' => true])
         ->expectsConfirmation('Are you sure you want to prune ALL [1] test artifacts (13 B)?', 'no')
         ->expectsOutputToContain('Pruning cancelled')
         ->assertExitCode(0);
@@ -256,7 +261,7 @@ it('cancels --all pruning if second confirmation prompt is rejected', function (
     $report = $this->reportsDir.DIRECTORY_SEPARATOR.'test_recent.html';
     file_put_contents($report, 'Recent report');
 
-    $this->artisan('doctest:prune', ['--all' => true])
+    $this->artisan('rubberstamp:prune', ['--all' => true])
         ->expectsConfirmation('Are you sure you want to prune ALL [1] test artifacts (13 B)?', 'yes')
         ->expectsConfirmation('This will permanently delete all test reports, logs, and browser snapshots. Do you wish to continue?', 'no')
         ->expectsOutputToContain('Pruning cancelled')
@@ -271,7 +276,7 @@ it('prunes all artifacts immediately with --all and --force without confirmation
     file_put_contents($report, 'Recent report');
     file_put_contents($log, 'Recent log');
 
-    $this->artisan('doctest:prune', [
+    $this->artisan('rubberstamp:prune', [
         '--all' => true,
         '--force' => true,
     ])

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use UnitTesterDocumenter\UnitTesterDocumenter\Tests\TestCase;
+use Eldinbiz\RubberStamp\Tests\TestCase;
 
 $token = $_SERVER['TEST_TOKEN'] ?? $_ENV['TEST_TOKEN'] ?? (string) getmypid();
 

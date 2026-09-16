@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Pest\Plugin;
-use UnitTesterDocumenter\UnitTesterDocumenter\Support\BrowserSnapshotManager;
+use Eldinbiz\RubberStamp\Support\BrowserSnapshotManager;
 
 require_once __DIR__.'/BrowserSnapshotManager.php';
 

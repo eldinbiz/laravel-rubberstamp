@@ -3,17 +3,19 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Artisan;
-use UnitTesterDocumenter\UnitTesterDocumenter\Support\AuditMetadataResolver;
-use UnitTesterDocumenter\UnitTesterDocumenter\Support\CorporateReportGenerator;
-use UnitTesterDocumenter\UnitTesterDocumenter\Support\PestLogParser;
+use Eldinbiz\RubberStamp\Support\AuditMetadataResolver;
+use Eldinbiz\RubberStamp\Support\CorporateReportGenerator;
+use Eldinbiz\RubberStamp\Support\PestLogParser;
 
-it('registers doctest:document artisan command with aliases and options', function () {
+it('registers rubberstamp:document artisan command with aliases and options', function () {
     $commands = Artisan::all();
 
-    expect($commands)->toHaveKey('doctest:document');
+    expect($commands)->toHaveKey('rubberstamp:document')
+        ->and($commands)->toHaveKey('doctest:document');
 
-    $command = $commands['doctest:document'];
-    expect($command->getAliases())->toContain('test:document')
+    $command = $commands['rubberstamp:document'];
+    expect($command->getAliases())->toContain('doctest:document')
+        ->and($command->getAliases())->toContain('test:document')
         ->and($command->getDefinition()->hasOption('author'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('sop'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('document-id'))->toBeTrue()
@@ -98,7 +100,10 @@ it('generates corporate html report with strict omission of unpassed sign-off ca
     $tmpDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'doctest_test_'.uniqid();
     mkdir($tmpDir, 0755, true);
 
-    config(['unit-tester-documenter.reports_dir' => 'reports']);
+    config([
+        'rubberstamp.reports_dir' => 'reports',
+        'unit-tester-documenter.reports_dir' => 'reports',
+    ]);
 
     $generator = new CorporateReportGenerator($tmpDir);
 
@@ -183,7 +188,10 @@ it('numbers test cases sequentially with CASE prefix derived from document id pr
     $tmpDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'doctest_uat_'.uniqid();
     mkdir($tmpDir, 0755, true);
 
-    config(['unit-tester-documenter.reports_dir' => 'reports']);
+    config([
+        'rubberstamp.reports_dir' => 'reports',
+        'unit-tester-documenter.reports_dir' => 'reports',
+    ]);
 
     $generator = new CorporateReportGenerator($tmpDir);
 
@@ -293,7 +301,10 @@ it('links test cases to visual evidence anchors and labels screenshot evidence w
     $tmpDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'doctest_evidence_'.uniqid();
     mkdir($tmpDir, 0755, true);
 
-    config(['unit-tester-documenter.reports_dir' => 'reports']);
+    config([
+        'rubberstamp.reports_dir' => 'reports',
+        'unit-tester-documenter.reports_dir' => 'reports',
+    ]);
 
     $generator = new CorporateReportGenerator($tmpDir);
 
@@ -383,7 +394,10 @@ it('correlates screenshots even when test names contain hyphens, commas, and pun
     $tmpDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'doctest_slug_'.uniqid();
     mkdir($tmpDir, 0755, true);
 
-    config(['unit-tester-documenter.reports_dir' => 'reports']);
+    config([
+        'rubberstamp.reports_dir' => 'reports',
+        'unit-tester-documenter.reports_dir' => 'reports',
+    ]);
 
     $generator = new CorporateReportGenerator($tmpDir);
 
@@ -508,6 +522,8 @@ it('allows developers to customize report using a custom blade view', function (
 
     // Or use View::addLocation / anonymous component / config override
     config([
+        'rubberstamp.reports_dir' => 'reports',
+        'rubberstamp.report_view' => 'rubberstamp::report',
         'unit-tester-documenter.reports_dir' => 'reports',
         'unit-tester-documenter.report_view' => 'unit-tester-documenter::report',
     ]);
@@ -573,8 +589,8 @@ it('allows developers to customize report using a custom blade view', function (
     @rmdir($tmpDir);
 });
 
-it('publishes blade views using the unit-tester-documenter-views publish tag', function () {
-    $publishedPath = resource_path('views/vendor/unit-tester-documenter');
+it('publishes blade views using the rubberstamp-views publish tag', function () {
+    $publishedPath = resource_path('views/vendor/rubberstamp');
 
     // Ensure clean state
     if (is_dir($publishedPath)) {
@@ -583,7 +599,7 @@ it('publishes blade views using the unit-tester-documenter-views publish tag', f
     }
 
     Artisan::call('vendor:publish', [
-        '--tag' => 'unit-tester-documenter-views',
+        '--tag' => 'rubberstamp-views',
     ]);
 
     expect(file_exists($publishedPath.DIRECTORY_SEPARATOR.'report.blade.php'))->toBeTrue()

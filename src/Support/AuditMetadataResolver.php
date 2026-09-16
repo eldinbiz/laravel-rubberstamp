@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UnitTesterDocumenter\UnitTesterDocumenter\Support;
+namespace Eldinbiz\RubberStamp\Support;
 
 use Illuminate\Support\Facades\DB;
 use PDO;
@@ -27,7 +27,7 @@ final class AuditMetadataResolver
             return trim($cliAuthor);
         }
 
-        $configAuthor = config('unit-tester-documenter.author_name');
+        $configAuthor = config('rubberstamp.author_name', config('unit-tester-documenter.author_name'));
 
         if (is_string($configAuthor) && trim($configAuthor) !== '') {
             return trim($configAuthor);
@@ -61,7 +61,7 @@ final class AuditMetadataResolver
     {
         $rawPrefix = is_string($cliPrefix) && trim($cliPrefix) !== ''
             ? trim($cliPrefix)
-            : (string) config('unit-tester-documenter.document_id_prefix', 'DOC-TEST-');
+            : (string) config('rubberstamp.document_id_prefix', config('unit-tester-documenter.document_id_prefix', 'DOC-TEST-'));
 
         $cleanPrefix = rtrim($rawPrefix, '-_');
         $ts = $timestamp ?? now()->format('Ymd_His');
@@ -102,7 +102,7 @@ final class AuditMetadataResolver
             }
         }
 
-        $rawPrefix = (string) config('unit-tester-documenter.document_id_prefix', 'DOC-TEST-');
+        $rawPrefix = (string) config('rubberstamp.document_id_prefix', config('unit-tester-documenter.document_id_prefix', 'DOC-TEST-'));
         $cleanPrefix = rtrim(trim($rawPrefix), '-_');
 
         return ($cleanPrefix !== '' ? $cleanPrefix : 'DOC-TEST').'-CASE-';
@@ -125,7 +125,9 @@ final class AuditMetadataResolver
      */
     public function resolveClassification(): string
     {
-        return (string) (config('unit-tester-documenter.classification') ?: 'INTERNAL USE ONLY');
+        return (string) (config('rubberstamp.classification')
+            ?: config('unit-tester-documenter.classification')
+            ?: 'INTERNAL USE ONLY');
     }
 
     /**
@@ -133,7 +135,7 @@ final class AuditMetadataResolver
      */
     public function resolveCompanyName(): string
     {
-        $configured = config('unit-tester-documenter.company_name');
+        $configured = config('rubberstamp.company_name', config('unit-tester-documenter.company_name'));
 
         if (is_string($configured) && trim($configured) !== '') {
             return trim($configured);

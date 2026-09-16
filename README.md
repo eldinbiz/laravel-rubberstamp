@@ -1,214 +1,262 @@
 <div align="center">
-    <h1>Unit Tester Documenter</h1>
+    <h1>RubberStamp</h1>
+    <p><em>Helping You, corporate slave programmer, to make Test Report your manager will blindly sign without reading.</em></p>
 </div>
 
 <p align="center">
-    <a href="https://packagist.org/packages/vendor-name/unit-tester-documenter"><img src="https://img.shields.io/packagist/v/vendor-name/unit-tester-documenter.svg?style=flat-square" alt="Packagist"></a>
-    <a href="https://packagist.org/packages/vendor-name/unit-tester-documenter"><img src="https://img.shields.io/packagist/php-v/vendor-name/unit-tester-documenter.svg?style=flat-square" alt="PHP from Packagist"></a>
-    <a href="https://packagist.org/packages/vendor-name/unit-tester-documenter"><img src="https://badge.laravel.cloud/badge/vendor-name/unit-tester-documenter?style=flat" alt="Laravel versions"></a>
-    <a href="https://github.com/vendor-name/unit-tester-documenter/actions"><img alt="GitHub Workflow Status (main)" src="https://img.shields.io/github/actions/workflow/status/vendor-name/unit-tester-documenter/tests.yml?branch=main&label=Tests&style=flat-square"></a>
-    <a href="https://packagist.org/packages/vendor-name/unit-tester-documenter"><img src="https://img.shields.io/packagist/dt/vendor-name/unit-tester-documenter.svg?style=flat-square" alt="Total Downloads"></a>
+    <a href="https://packagist.org/packages/eldinbiz/laravel-rubberstamp"><img src="https://img.shields.io/packagist/v/eldinbiz/laravel-rubberstamp.svg?style=flat-square" alt="Packagist"></a>
+    <a href="https://packagist.org/packages/eldinbiz/laravel-rubberstamp"><img src="https://img.shields.io/packagist/php-v/eldinbiz/laravel-rubberstamp.svg?style=flat-square" alt="PHP from Packagist"></a>
+    <a href="https://packagist.org/packages/eldinbiz/laravel-rubberstamp"><img src="https://badge.laravel.cloud/badge/eldinbiz/laravel-rubberstamp?style=flat" alt="Laravel versions"></a>
+    <a href="https://github.com/eldinbiz/laravel-rubberstamp/actions"><img alt="GitHub Workflow Status (main)" src="https://img.shields.io/github/actions/workflow/status/eldinbiz/laravel-rubberstamp/tests.yml?branch=main&label=Tests&style=flat-square"></a>
+    <a href="https://packagist.org/packages/eldinbiz/laravel-rubberstamp"><img src="https://img.shields.io/packagist/dt/eldinbiz/laravel-rubberstamp.svg?style=flat-square" alt="Total Downloads"></a>
 </p>
 
+## Overview
 
+Welcome to corporate bureaucracy. You just wrote pristine Pest tests, your CI pipeline is glowing green, and your commit history is flawless.
+
+Too bad none of that matters to your enterprise managers.
+
+In a sensible world, automated test results would happily live in Git history, a Confluence page, a Microsoft Loop workspace, or a Markdown file in your repo. But as a corporate slave developer surviving in an enterprise compliance dungeon, you are required to produce **formal, printable test reports**—complete with document control numbers, SOP tracking codes, and multi-tier managerial sign-off blocks that someone will inevitably print onto paper, punch holes into, place into a binder, and never look at ever again.
+
+**RubberStamp** exists so you never have to spend your Friday afternoon manually copy-pasting terminal output, cropping browser screenshots, and assembling Word documents for the compliance department.
+
+With a single Artisan command, RubberStamp runs your Pest tests, flushes configuration and view caches, records audit logs, captures visual browser snapshots, and automatically compiles a **print-ready, single-file HTML test report** complete with sign-off blocks. Hand over the test report your manager will blindly sign without reading, and get back to writing actual code.
+
+---
+
+## Key Features
+
+- **Audit-Ready HTML Reports**: Generates self-contained, print-ready corporate documentation complete with Document IDs, revision codes, execution durations, and test suite breakdowns.
+- **Customizable Reports**: Personalize report branding with your company name, corporate logo, confidentiality classification (e.g., `CONFIDENTIAL`, `INTERNAL USE ONLY`), custom Document ID prefixes, and even swap in custom Blade report templates (`report_view`) via configuration or environment variables.
+- **Formal Sign-Off Matrices**: Dynamically append structured sign-off sheets for Testers, Reviewers, Approvers, and Acknowledgers directly into the report.
+- **Zero-Configuration Browser Snapshots**: Executes Pest browser tests and automatically captures visual snapshots—embedded directly as base64 images into the standalone audit report without modifying host application test classes.
+- **Interactive Terminal Wizard**: Configure audit metadata, SOP references, and reviewer names on the fly before running tests using the `-i` flag.
+- **Playwright Environment Doctor**: Built-in pre-flight diagnostic check (`--doctor`) for Playwright browsers, Node dependencies, and container environments.
+- **Timestamped Execution Logs**: Streams real-time test runs into `doctest-reports/test-log/` or `doctest-reports/browser-test-log/` for complete auditability.
+- **Standalone Document Compiler**: Recompile reports anytime from existing test logs without re-executing suites (`php artisan rubberstamp:document`).
+- **Clean Up Your Test Results Log**: Automated artifact pruning with customizable retention periods and dry-run safety (`php artisan rubberstamp:prune`).
+
+---
 
 ## Installation
 
-You can install the package via Composer:
+Install the package via Composer:
 
 ```bash
-composer require vendor-name/unit-tester-documenter
+composer require eldinbiz/laravel-rubberstamp
 ```
 
-You may publish all of the package's resources at once:
+### Configuration (Optional)
+
+The package works completely out of the box with zero configuration. If you wish to customize output directories, retention policies, Chromium paths, or default sign-off roles, publish the configuration file:
 
 ```bash
-php artisan vendor:publish --tag="unit-tester-documenter"
+php artisan vendor:publish --tag="rubberstamp-config"
 ```
 
-Or, you may publish each resource individually:
-
-### Publishing the Configuration File
-
-```bash
-php artisan vendor:publish --tag="unit-tester-documenter-config"
-```
-
-### Publishing and Running the Migrations
-
-```bash
-php artisan vendor:publish --tag="unit-tester-documenter-migrations"
-php artisan migrate
-```
-
-### Publishing the Views
-
-```bash
-php artisan vendor:publish --tag="unit-tester-documenter-views"
-```
-
-### Publishing the Translations
-
-```bash
-php artisan vendor:publish --tag="unit-tester-documenter-lang"
-```
-
-### Publishing the Public Assets
-
-```bash
-php artisan vendor:publish --tag="unit-tester-documenter-assets"
-```
+---
 
 ## Usage
 
-### DocTest Suite Overview
+### RubberStamp Suite Overview
 
-Run the root command for an overview of the DocTest suite:
+Run the root command for a quick summary of all available RubberStamp commands:
 
 ```bash
-php artisan doctest
+php artisan rubberstamp
 ```
 
-### Running Tests with Automated Corporate Documentation
+*(Alias: `php artisan doctest`)*
 
-Execute Pest tests with automatic config/view cache clearing, `doctest-reports/test-log/` logging, and print-ready HTML report compilation:
+---
+
+### Running Feature & Unit Tests (`rubberstamp:features`)
+
+Run Pest unit and feature tests with automatic configuration/view cache clearing, timestamped execution logging, and automated corporate HTML report generation.
+
+#### Main Command
 
 ```bash
-# Run tests and generate corporate audit reports
+php artisan rubberstamp:features [target] [options]
+```
+
+#### Arguments & Options
+
+- **`target`** *(argument)*: Optional test file or directory path to execute. If omitted, executes all suites defined in your `phpunit.xml`.
+  - *Example*: `php artisan rubberstamp:features tests/Feature/OrderProcessingTest.php`
+- **`--document-id=`**: Custom Document ID prefix for the generated corporate audit report. (Defaults to `DOC-TEST-` or `RUBBERSTAMP_DOCUMENT_ID_PREFIX`).
+  - *Example*: `--document-id="UAT-ERP"`
+- **`--sop=`**: Associated Standard Operating Procedure (SOP) policy or RFC ticket code. (Defaults to `N/A` or `RUBBERSTAMP_SOP`).
+  - *Example*: `--sop="SOP-DEV-002"`
+- **`--author=`**: Tester or author name. (Defaults to Git configured `user.name` or `RUBBERSTAMP_AUTHOR`).
+  - *Example*: `--author="Jane Doe"`
+- **`--reviewed-by=`**: Pipe-separated list of reviewer names and roles (`Name,Role` or `Role`).
+  - *Example*: `--reviewed-by="Mr Smith,QA Engineer|Taylor,QA Lead|QA Head"`
+- **`--approved-by=`**: Pipe-separated list of approver names and roles (`Name,Role` or `Role`).
+  - *Example*: `--approved-by="Jane,Technical Lead|CTO"`
+- **`--acknowledged-by=`**: Pipe-separated list of acknowledger names and roles (`Name,Role` or `Role`).
+  - *Example*: `--acknowledged-by="Bob,Product Owner"`
+- **`-i`**, **`--interactive`**: Launch an interactive terminal wizard to configure audit metadata and sign-offs before test execution.
+  - *Example*: `php artisan rubberstamp:features -i`
+- **`--no-doc`**: Run tests and stream output to log files, but skip generating the corporate HTML documentation report.
+  - *Example*: `php artisan rubberstamp:features --no-doc`
+- **`--skip-clear`**: Skip automated pre-test cache clearing (`config:clear` and `view:clear`).
+  - *Example*: `php artisan rubberstamp:features --skip-clear`
+- **`--pest-path=`**: Custom path to the Pest test runner binary.
+  - *Example*: `--pest-path="vendor/bin/pest"`
+
+#### Aliases
+
+The following backward-compatible aliases are also available:
+```bash
 php artisan doctest:features
-
-# Customize Document ID prefix and associate SOP policy code
-php artisan doctest:features --document-id="UAT-TEST" --sop="SOP-DEV-002"
-
-# Specify author and dynamic sign-off roles
-php artisan doctest:features --author="Jane Doe" \
-    --reviewed-by="Mr Smith,QA Engineer|Taylor,QA Lead|QA Head" \
-    --approved-by="CTO" \
-    --acknowledged-by="Product Owner"
-
-# Launch interactive terminal setup wizard
-php artisan doctest:features -i
-
-# Run tests without generating documentation reports
-php artisan doctest:features --no-doc
-
-# Backward-compatible aliases
 php artisan doctest:feature
 php artisan test:features
 php artisan test:feature
 ```
 
-### Running Browser Tests with Visual Snapshot Documentation
+---
 
-Execute Pest browser tests with Playwright environment health checks, hot-reloading protection, and snapshot documentation embedded directly as base64 into the single-file HTML report:
+### Running Browser Tests (`rubberstamp:browser`)
+
+Run Pest browser tests with Playwright environment health checks, Vite hot-reload protection, and automated visual snapshot capture embedded as base64 images into the audit report.
+
+> [!NOTE]
+> **Zero-Configuration Browser Testing**:
+> Unlike typical browser testing setups, you **do not** need to add traits like `CapturesBrowserSnapshots` or edit `tests/TestCase.php` / `tests/Pest.php` in your host application. The `rubberstamp:browser` command automatically boots snapshot hooks and page trackers at runtime.
+
+#### Main Command
 
 ```bash
-# Run environment health check
-php artisan doctest:browser --doctor
+php artisan rubberstamp:browser [target] [options]
+```
 
-# Run browser tests with audit reports and embedded visual screenshots
+#### Arguments & Options
+
+- **`target`** *(argument)*: Optional browser test file or directory path to execute. (Defaults to `tests/Browser`).
+  - *Example*: `php artisan rubberstamp:browser tests/Browser/LoginFlowTest.php`
+- **`--doctor`**, **`--check`**: Run pre-flight Playwright environment, Node dependencies, and Chromium binary diagnostics only without running tests.
+  - *Example*: `php artisan rubberstamp:browser --doctor`
+- **`--skip-health-check`**: Skip the pre-flight environment health check and run browser tests directly.
+  - *Example*: `php artisan rubberstamp:browser --skip-health-check`
+- **`--document-id=`**: Custom Document ID prefix for the generated browser audit report. (Defaults to `DOC-TEST-` or `RUBBERSTAMP_DOCUMENT_ID_PREFIX`).
+  - *Example*: `--document-id="UAT-BROWSER"`
+- **`--sop=`**: Associated Standard Operating Procedure (SOP) policy or RFC ticket code. (Defaults to `N/A` or `RUBBERSTAMP_SOP`).
+  - *Example*: `--sop="SOP-UI-004"`
+- **`--author=`**: Tester or author name. (Defaults to Git configured `user.name` or `RUBBERSTAMP_AUTHOR`).
+  - *Example*: `--author="Jane Doe"`
+- **`--reviewed-by=`**: Pipe-separated list of reviewer names and roles (`Name,Role` or `Role`).
+  - *Example*: `--reviewed-by="Mr Smith,QA Engineer|Taylor,QA Lead"`
+- **`--approved-by=`**: Pipe-separated list of approver names and roles (`Name,Role` or `Role`).
+  - *Example*: `--approved-by="Jane,Technical Lead|CTO"`
+- **`--acknowledged-by=`**: Pipe-separated list of acknowledger names and roles (`Name,Role` or `Role`).
+  - *Example*: `--acknowledged-by="Bob,Product Owner"`
+- **`-i`**, **`--interactive`**: Launch an interactive terminal wizard to configure audit metadata and sign-offs before test execution.
+  - *Example*: `php artisan rubberstamp:browser -i`
+- **`--no-doc`**: Run browser tests but skip generating the corporate HTML documentation report.
+  - *Example*: `php artisan rubberstamp:browser --no-doc`
+- **`--pest-path=`**: Custom path to the Pest test runner binary.
+  - *Example*: `--pest-path="vendor/bin/pest"`
+
+#### Aliases
+
+The following backward-compatible aliases are also available:
+```bash
 php artisan doctest:browser
-
-# Target specific test file with interactive sign-off setup
-php artisan doctest:browser tests/Browser/LoginTest.php -i
-
-# Backward-compatible alias
 php artisan test:browser
 ```
 
-#### Browser Test Setup (Host Application)
+---
 
-To enable automatic visual snapshot capture during Pest browser runs:
+### Standalone Documentation Compiler (`rubberstamp:document`)
 
-1. In your `tests/TestCase.php`, import the snapshot trait:
-```php
-use UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots;
-
-abstract class TestCase extends BaseTestCase
-{
-    use CreatesApplication;
-    use CapturesBrowserSnapshots;
-}
-```
-
-2. In your `tests/Pest.php`, register the automatic browser snapshot hook:
-```php
-if (class_exists(\UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots::class)) {
-    \UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots::registerPestHooks();
-}
-```
-
-
-### Standalone Documentation Compiler
-
-Generate or re-compile corporate HTML reports from existing test logs without re-running test suites:
+Generate or re-compile corporate HTML reports from existing test logs without re-running test suites. Useful when you need to regenerate an audit report with updated SOP codes or sign-off names.
 
 ```bash
 # Compile documentation for the latest test run
-php artisan doctest:document
+php artisan rubberstamp:document
 
 # Compile documentation for a specific run or log file
-php artisan doctest:document test_20260910_031304
+php artisan rubberstamp:document test_20260910_031304
 
-# Interactively configure metadata for existing run
-php artisan doctest:document test_20260910_031304 -i
+# Interactively configure metadata and sign-offs for an existing run
+php artisan rubberstamp:document test_20260910_031304 -i
 
-# Alias
-php artisan test:document
+# Customize metadata directly via options
+php artisan rubberstamp:document test_20260910_031304 \
+    --document-id="AUDIT-2026" \
+    --sop="SOP-AUDIT-001" \
+    --approved-by="Compliance Lead"
 ```
 
-### Available Documentation Options
+*(Aliases: `php artisan doctest:document`, `php artisan test:document`)*
 
-| Option | Description | Example |
-| :--- | :--- | :--- |
-| `--document-id=` | Custom Document ID prefix (defaults to `DOC-TEST-`) | `--document-id="UAT-TEST"` |
-| `--sop=` | SOP policy or RFC ticket code (defaults to `N/A`) | `--sop="SOP-QA-001"` |
-| `--author=` | Tester / author name (defaults to `git config user.name`) | `--author="Eldin Akbar"` |
-| `--reviewed-by=` | Pipe-separated reviewers/roles (`Name,Role` or `Role`) | `--reviewed-by="Mr Smith,QA Engineer\|QA Head"` |
-| `--approved-by=` | Pipe-separated approvers/roles (`Name,Role` or `Role`) | `--approved-by="Jane,QA Lead\|Technical Lead"` |
-| `--acknowledged-by=` | Pipe-separated acknowledgers/roles (`Name,Role` or `Role`) | `--acknowledged-by="Bob,Project Manager"` |
-| `-i`, `--interactive` | Interactively configure metadata & sign-offs before execution | `php artisan doctest:features -i` |
-| `--no-doc` | Skip corporate documentation generation | `php artisan doctest:features --no-doc` |
+---
 
-### Pruning Test Artifacts & Logs
+### Pruning Test Artifacts & Logs (`rubberstamp:prune`)
 
-Purge obsolete test execution logs, generated corporate HTML reports, and Playwright visual snapshots to reclaim disk space:
+Purge obsolete test execution logs, generated corporate HTML reports, and browser visual snapshots to reclaim disk space:
 
 ```bash
 # Prune artifacts older than the default retention period (7 days)
-php artisan doctest:prune
+php artisan rubberstamp:prune
 
 # Dry run: preview candidate items and reclaimed disk space without deleting
-php artisan doctest:prune --dry-run
+php artisan rubberstamp:prune --dry-run
 
 # Prune artifacts older than 48 hours
-php artisan doctest:prune --hours=48 --force
+php artisan rubberstamp:prune --hours=48 --force
 
 # Retain only the latest 10 test runs and prune older ones
-php artisan doctest:prune --keep=10 --force
+php artisan rubberstamp:prune --keep=10 --force
 
 # Prune only specific artifact types ('reports', 'logs', 'snapshots')
-php artisan doctest:prune --type=snapshots --force
+php artisan rubberstamp:prune --type=snapshots --force
 
-# Prune all test artifacts (requires 2-step confirmation unless --force is used)
-php artisan doctest:prune -a
-php artisan doctest:prune --all --force
-
-# Backward-compatible alias
-php artisan test:prune
+# Prune all test artifacts (prompts two-step confirmation unless --force is used)
+php artisan rubberstamp:prune -a
+php artisan rubberstamp:prune --all --force
 ```
 
-### Available Pruning Options
+*(Aliases: `php artisan doctest:prune`, `php artisan test:prune`)*
 
-| Option | Description | Example |
-| :--- | :--- | :--- |
-| `-a`, `--all` | Prune all test artifacts regardless of age (prompts two-step confirmation) | `php artisan doctest:prune -a` |
-| `--hours=` | Prune artifacts older than specified hours | `--hours=24` |
-| `--days=` | Prune artifacts older than specified days | `--days=14` |
-| `--keep=` | Keep the latest N test runs and prune older ones | `--keep=5` |
-| `--type=` | Limit pruning to a specific type (`all`, `reports`, `logs`, `snapshots`) | `--type=reports` |
-| `--dry-run` | Simulate pruning and display matching files without deleting | `--dry-run` |
-| `--force` | Force deletion without confirmation prompt | `--force` |
+#### Available Pruning Options
+
+- **`-a`**, **`--all`**: Prune all test artifacts regardless of age (prompts two-step confirmation).
+  - *Example*: `php artisan rubberstamp:prune -a`
+- **`--hours=`**: Prune artifacts older than specified hours.
+  - *Example*: `--hours=24`
+- **`--days=`**: Prune artifacts older than specified days.
+  - *Example*: `--days=14`
+- **`--keep=`**: Keep the latest N test runs and prune older ones.
+  - *Example*: `--keep=5`
+- **`--type=`**: Limit pruning to a specific type (`all`, `reports`, `logs`, `snapshots`).
+  - *Example*: `--type=reports`
+- **`--dry-run`**: Simulate pruning and display matching files without deleting.
+  - *Example*: `--dry-run`
+- **`--force`**: Force deletion without confirmation prompt.
+  - *Example*: `--force`
+
+---
+
+## Customizing the Report View
+
+You can customize or replace the default report template.
+
+To publish the default Blade template into your application's `resources/views/vendor/rubberstamp`:
+
+```bash
+php artisan vendor:publish --tag="rubberstamp-views"
+```
+
+Or configure your own custom Blade view in `config/rubberstamp.php`:
+
+```php
+'report_view' => 'reports.corporate',
+```
+
+---
 
 ## Changelog
 
@@ -216,7 +264,7 @@ Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed re
 
 ## Contributing
 
-Thank you for considering contributing to Unit Tester Documenter! Please review our [contributing guide](.github/CONTRIBUTING.md) to get started.
+Thank you for considering contributing to RubberStamp! Please review our [contributing guide](.github/CONTRIBUTING.md) to get started.
 
 ## Security Vulnerabilities
 
@@ -224,9 +272,10 @@ Please review [our security policy](.github/SECURITY.md) on how to report securi
 
 ## Credits
 
-- [Vendor Name](https://github.com/vendor-name)
-- [All Contributors](../../contributors)
+- [Eldin Akbar](https://github.com/eldinbiz)
+- [Laravel Team](https://github.com/laravel/laravel)
+- [Nuno Maduro](https://github.com/pestphp/pest)
 
 ## License
 
-Unit Tester Documenter is open-sourced software licensed under the [MIT license](LICENSE.md).
+RubberStamp is open-sourced software licensed under the [MIT license](LICENSE.md).
