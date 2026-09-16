@@ -178,6 +178,7 @@ final class BrowserEnvironmentDoctor
 
         $outdated = $this->findAnyCachedChromium();
         $outdatedNote = '';
+
         if ($outdated !== null && $expectedRevision !== null) {
             $outdatedBase = basename($outdated);
             $outdatedNote = " (found incompatible/outdated browser: {$outdatedBase})";
@@ -318,6 +319,7 @@ final class BrowserEnvironmentDoctor
         $paths = [];
 
         $browsersPath = getenv('PLAYWRIGHT_BROWSERS_PATH');
+
         if (is_string($browsersPath) && $browsersPath !== '') {
             $paths[] = $browsersPath;
         }
@@ -349,8 +351,10 @@ final class BrowserEnvironmentDoctor
         foreach ($manifestCandidates as $manifest) {
             if (file_exists($manifest)) {
                 $content = @file_get_contents($manifest);
+
                 if ($content !== false && $content !== '') {
                     $data = json_decode($content, true);
+
                     if (is_array($data) && isset($data['browsers']) && is_array($data['browsers'])) {
                         foreach ($data['browsers'] as $browser) {
                             if (isset($browser['name']) && $browser['name'] === 'chromium' && isset($browser['revision'])) {
@@ -380,11 +384,13 @@ final class BrowserEnvironmentDoctor
 
             if ($expectedRevision !== null) {
                 $revisionDir = $base.DIRECTORY_SEPARATOR.'chromium-'.$expectedRevision;
+
                 if (is_dir($revisionDir)) {
                     return $revisionDir;
                 }
 
                 $headlessDir = $base.DIRECTORY_SEPARATOR.'chromium_headless_shell-'.$expectedRevision;
+
                 if (is_dir($headlessDir)) {
                     return $headlessDir;
                 }

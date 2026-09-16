@@ -146,7 +146,7 @@ it('fails chromium check when cached browser revision is outdated compared to ex
     @mkdir($tempProject.DIRECTORY_SEPARATOR.'node_modules'.DIRECTORY_SEPARATOR.'playwright-core', 0755, true);
     file_put_contents(
         $tempProject.DIRECTORY_SEPARATOR.'node_modules'.DIRECTORY_SEPARATOR.'playwright-core'.DIRECTORY_SEPARATOR.'browsers.json',
-        json_encode(['browsers' => [['name' => 'chromium', 'revision' => '1243']]])
+        json_encode(['browsers' => [['name' => 'chromium', 'revision' => '1243']]]),
     );
 
     $msPlaywright = $tempCache.DIRECTORY_SEPARATOR.'ms-playwright';
@@ -197,7 +197,7 @@ it('passes chromium check when cached browser revision matches expected revision
     @mkdir($tempProject.DIRECTORY_SEPARATOR.'node_modules'.DIRECTORY_SEPARATOR.'playwright-core', 0755, true);
     file_put_contents(
         $tempProject.DIRECTORY_SEPARATOR.'node_modules'.DIRECTORY_SEPARATOR.'playwright-core'.DIRECTORY_SEPARATOR.'browsers.json',
-        json_encode(['browsers' => [['name' => 'chromium', 'revision' => '1243']]])
+        json_encode(['browsers' => [['name' => 'chromium', 'revision' => '1243']]]),
     );
 
     $msPlaywright = $tempCache.DIRECTORY_SEPARATOR.'ms-playwright';

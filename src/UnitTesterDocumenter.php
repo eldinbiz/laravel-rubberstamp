@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace UnitTesterDocumenter\UnitTesterDocumenter;
 
-use UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots;
+use UnitTesterDocumenter\UnitTesterDocumenter\Support\BrowserSnapshotManager;
 
 class UnitTesterDocumenter
 {
@@ -13,6 +13,6 @@ class UnitTesterDocumenter
      */
     public static function registerPestBrowserHooks(): void
     {
-        CapturesBrowserSnapshots::registerPestHooks();
+        BrowserSnapshotManager::registerPestHooks();
     }
 }

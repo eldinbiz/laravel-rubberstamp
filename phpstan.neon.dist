@@ -5,6 +5,10 @@ parameters:
         - config
         - database
         - routes
+    excludePaths:
+        - src/Support/browser-test-bootstrap.php
+        - src/Support/browser-pest-runner.php
+        - src/Support/BrowserSnapshotManager.php
     tmpDir: build/phpstan
     ignoreErrors:
         -

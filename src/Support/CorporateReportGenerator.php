@@ -118,6 +118,56 @@ final class CorporateReportGenerator
             $data['screenshots'] ?? [],
         );
 
+        $totalTests = (int) ($data['total_tests'] ?? 0);
+        $passedTests = (int) ($data['passed_tests'] ?? 0);
+        $failedTests = (int) ($data['failed_tests'] ?? 0);
+        $totalAssertions = (int) ($data['total_assertions'] ?? 0);
+        $duration = htmlspecialchars((string) ($data['duration'] ?? '0.00s'), ENT_QUOTES, 'UTF-8');
+        $passRate = $totalTests > 0 ? round(($passedTests / $totalTests) * 100, 1) : 0;
+
+        $viewData = [
+            'meta' => $meta,
+            'data' => $data,
+            'suites' => $suites,
+            'screenshots' => $screenshots,
+            'isPassed' => $isPassed,
+            'verdictClass' => $verdictClass,
+            'verdictBg' => $verdictBg,
+            'totalTests' => $totalTests,
+            'passedTests' => $passedTests,
+            'failedTests' => $failedTests,
+            'totalAssertions' => $totalAssertions,
+            'duration' => $duration,
+            'passRate' => $passRate,
+        ];
+
+        $viewName = function_exists('config')
+            ? (string) config('unit-tester-documenter.report_view', 'unit-tester-documenter::report')
+            : 'unit-tester-documenter::report';
+
+        if (function_exists('view') && view()->exists($viewName)) {
+            return view($viewName, $viewData)->render();
+        }
+
+        return $this->buildFallbackHtml($meta, $data, $suites, $screenshots, $viewData);
+    }
+
+    /**
+     * Fallback HTML builder when Blade view factory is not available.
+     *
+     * @param  array<string, mixed>  $meta
+     * @param  array<string, mixed>  $data
+     * @param  array<int, array<string, mixed>>  $suites
+     * @param  array<int, array<string, mixed>>  $screenshots
+     * @param  array<string, mixed>  $viewData
+     */
+    private function buildFallbackHtml(
+        array $meta,
+        array $data,
+        array $suites,
+        array $screenshots,
+        array $viewData,
+    ): string {
         $logoHtml = $this->renderLogoHtml();
         $suitesRows = $this->renderHtmlSuitesRows($suites);
         $detailedCasesHtml = $this->renderHtmlDetailedCases($suites);
@@ -134,13 +184,13 @@ final class CorporateReportGenerator
         $commit = htmlspecialchars((string) ($meta['git']['commit'] ?? 'N/A'), ENT_QUOTES, 'UTF-8');
         $stack = htmlspecialchars((string) $meta['runtime_stack'], ENT_QUOTES, 'UTF-8');
 
-        $totalTests = (int) ($data['total_tests'] ?? 0);
-        $passedTests = (int) ($data['passed_tests'] ?? 0);
-        $failedTests = (int) ($data['failed_tests'] ?? 0);
-        $totalAssertions = (int) ($data['total_assertions'] ?? 0);
-        $duration = htmlspecialchars((string) ($data['duration'] ?? '0.00s'), ENT_QUOTES, 'UTF-8');
-        $suitesCount = count($data['suites'] ?? []);
-        $passRate = $totalTests > 0 ? round(($passedTests / $totalTests) * 100, 1) : 0;
+        $totalTests = (int) $viewData['totalTests'];
+        $passedTests = (int) $viewData['passedTests'];
+        $failedTests = (int) $viewData['failedTests'];
+        $totalAssertions = (int) $viewData['totalAssertions'];
+        $duration = (string) $viewData['duration'];
+        $passRate = (float) $viewData['passRate'];
+        $verdictBg = (string) $viewData['verdictBg'];
 
         return <<<HTML
 <!DOCTYPE html>

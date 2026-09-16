@@ -76,6 +76,7 @@ return [
     |
     */
     'reports_dir' => env('DOCTEST_REPORTS_DIR', 'doctest-reports'),
+    'report_view' => env('DOCTEST_REPORT_VIEW', 'unit-tester-documenter::report'),
     'auto_document' => (bool) env('DOCTEST_AUTO_DOCUMENT', true),
     'document_id_prefix' => env('DOCTEST_DOCUMENT_ID_PREFIX', 'DOC-TEST-'),
     'company_name' => env('DOCTEST_COMPANY_NAME'),

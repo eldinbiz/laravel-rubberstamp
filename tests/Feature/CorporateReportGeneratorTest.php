@@ -497,3 +497,115 @@ it('correlates screenshots even when test names contain hyphens, commas, and pun
     @rmdir(dirname($report['html_path']));
     @rmdir($tmpDir);
 });
+
+it('allows developers to customize report using a custom blade view', function () {
+    $tmpDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'doctest_custom_view_'.uniqid();
+    mkdir($tmpDir, 0755, true);
+
+    // Register a custom in-memory Blade view
+    $viewFactory = app('view');
+    $viewFactory->addNamespace('custom-test', __DIR__.'/../fixtures/views');
+
+    // Or use View::addLocation / anonymous component / config override
+    config([
+        'unit-tester-documenter.reports_dir' => 'reports',
+        'unit-tester-documenter.report_view' => 'unit-tester-documenter::report',
+    ]);
+
+    $generator = new CorporateReportGenerator($tmpDir);
+
+    $metadata = [
+        'run_name' => 'custom_run_123',
+        'document_id' => 'DOC-CUSTOM-001',
+        'sop' => 'SOP-CUSTOM',
+        'author' => 'Custom Author',
+        'executed_at' => '2026-09-15 12:00:00 UTC',
+        'company_name' => 'Custom Corp',
+        'classification' => 'PUBLIC',
+        'git' => ['branch' => 'main', 'commit' => 'abc1234'],
+        'runtime_stack' => 'PHP 8.4 / Laravel 12',
+        'reviewed_by' => [],
+        'approved_by' => [],
+        'acknowledged_by' => [],
+    ];
+
+    $testData = [
+        'verdict' => 'PASSED',
+        'total_tests' => 1,
+        'passed_tests' => 1,
+        'failed_tests' => 0,
+        'total_assertions' => 1,
+        'duration' => '0.01s',
+        'suites' => [
+            [
+                'name' => 'Tests\Unit\CustomTest',
+                'file' => 'tests/Unit/CustomTest.php',
+                'status' => 'PASSED',
+                'total' => 1,
+                'passed' => 1,
+                'failed' => 0,
+                'duration' => '0.01s',
+                'cases' => [
+                    [
+                        'name' => 'it works',
+                        'status' => 'PASSED',
+                        'duration' => '0.01s',
+                        'assertions' => 1,
+                        'failure' => null,
+                    ],
+                ],
+            ],
+        ],
+        'screenshots' => [],
+    ];
+
+    $report = $generator->generate($metadata, $testData);
+
+    $html = (string) file_get_contents($report['html_path']);
+
+    expect($html)->toContain('Formal Test Execution Record - DOC-CUSTOM-001')
+        ->and($html)->toContain('Custom Corp')
+        ->and($html)->toContain('DOC-CUSTOM-CASE-1');
+
+    // Cleanup temp
+    @unlink($report['html_path']);
+    @rmdir(dirname($report['html_path']));
+    @rmdir($tmpDir);
+});
+
+it('publishes blade views using the unit-tester-documenter-views publish tag', function () {
+    $publishedPath = resource_path('views/vendor/unit-tester-documenter');
+
+    // Ensure clean state
+    if (is_dir($publishedPath)) {
+        array_map('unlink', glob("{$publishedPath}/*.*") ?: []);
+        @rmdir($publishedPath);
+    }
+
+    Artisan::call('vendor:publish', [
+        '--tag' => 'unit-tester-documenter-views',
+    ]);
+
+    expect(file_exists($publishedPath.DIRECTORY_SEPARATOR.'report.blade.php'))->toBeTrue()
+        ->and(file_exists($publishedPath.DIRECTORY_SEPARATOR.'partials'.DIRECTORY_SEPARATOR.'styles.blade.php'))->toBeTrue()
+        ->and(file_exists($publishedPath.DIRECTORY_SEPARATOR.'partials'.DIRECTORY_SEPARATOR.'header.blade.php'))->toBeTrue()
+        ->and(file_exists($publishedPath.DIRECTORY_SEPARATOR.'partials'.DIRECTORY_SEPARATOR.'metadata.blade.php'))->toBeTrue()
+        ->and(file_exists($publishedPath.DIRECTORY_SEPARATOR.'partials'.DIRECTORY_SEPARATOR.'summary.blade.php'))->toBeTrue()
+        ->and(file_exists($publishedPath.DIRECTORY_SEPARATOR.'partials'.DIRECTORY_SEPARATOR.'suites-table.blade.php'))->toBeTrue()
+        ->and(file_exists($publishedPath.DIRECTORY_SEPARATOR.'partials'.DIRECTORY_SEPARATOR.'cases.blade.php'))->toBeTrue()
+        ->and(file_exists($publishedPath.DIRECTORY_SEPARATOR.'partials'.DIRECTORY_SEPARATOR.'screenshots.blade.php'))->toBeTrue()
+        ->and(file_exists($publishedPath.DIRECTORY_SEPARATOR.'partials'.DIRECTORY_SEPARATOR.'signoff.blade.php'))->toBeTrue();
+
+    // Clean up published files
+    $files = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($publishedPath, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST,
+    );
+
+    foreach ($files as $fileinfo) {
+        $todo = ($fileinfo->isDir() ? 'rmdir' : 'unlink');
+        $todo($fileinfo->getRealPath());
+    }
+
+    @rmdir($publishedPath);
+});

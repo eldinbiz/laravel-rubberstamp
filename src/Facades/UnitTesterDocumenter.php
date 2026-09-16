@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace UnitTesterDocumenter\UnitTesterDocumenter\Facades;
 
 use Illuminate\Support\Facades\Facade;
-use UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots;
+use UnitTesterDocumenter\UnitTesterDocumenter\Support\BrowserSnapshotManager;
 
 /**
  * @see \UnitTesterDocumenter\UnitTesterDocumenter\UnitTesterDocumenter
@@ -22,6 +22,6 @@ class UnitTesterDocumenter extends Facade
      */
     public static function registerPestBrowserHooks(): void
     {
-        CapturesBrowserSnapshots::registerPestHooks();
+        BrowserSnapshotManager::registerPestHooks();
     }
 }

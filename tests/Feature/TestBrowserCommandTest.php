@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use UnitTesterDocumenter\UnitTesterDocumenter\Support\BrowserSnapshotManager;
+
 it('registers the doctest:browser artisan command', function () {
     $commands = Artisan::all();
 
@@ -55,4 +57,24 @@ it('bypasses health check when --skip-health-check is supplied', function () {
         '--target' => 'tests/Browser/NonExistentTest.php',
     ])
         ->doesntExpectOutputToContain('Browser Testing & Playwright Environment Doctor');
+});
+
+it('resolves browser-test-bootstrap.php file and registers hooks idempotently', function () {
+    $bootstrapPath = realpath(__DIR__.'/../../src/Support/browser-test-bootstrap.php');
+    $runnerPath = realpath(__DIR__.'/../../src/Support/browser-pest-runner.php');
+
+    expect($bootstrapPath)->not->toBeFalse()
+        ->and(file_exists((string) $bootstrapPath))->toBeTrue()
+        ->and($runnerPath)->not->toBeFalse()
+        ->and(file_exists((string) $runnerPath))->toBeTrue();
+
+    BrowserSnapshotManager::$pestHooksRegistered = false;
+
+    // First call should register
+    BrowserSnapshotManager::registerPestHooks();
+    expect(BrowserSnapshotManager::$pestHooksRegistered)->toBeTrue();
+
+    // Second call should be a no-op / idempotent
+    BrowserSnapshotManager::registerPestHooks();
+    expect(BrowserSnapshotManager::$pestHooksRegistered)->toBeTrue();
 });

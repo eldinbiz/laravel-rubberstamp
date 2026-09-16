@@ -145,7 +145,18 @@ final class TestBrowserCommand extends Command
         $_ENV['BROWSER_SNAPSHOT_DIR'] = base_path($runSnapshotDir);
         $_SERVER['BROWSER_SNAPSHOT_DIR'] = base_path($runSnapshotDir);
 
-        $chromiumPath = $doctor->detectChromiumBinary();
+        $configuredChromium = (string) config('unit-tester-documenter.chromium_binary') ?: null;
+        $envChromium = getenv('PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH') ?: null;
+
+        $chromiumPath = null;
+
+        if ($configuredChromium !== null && file_exists($configuredChromium)) {
+            $chromiumPath = $configuredChromium;
+        } elseif ($envChromium !== null && file_exists((string) $envChromium)) {
+            $chromiumPath = (string) $envChromium;
+        } elseif ($doctor->findPlaywrightCachedChromium() === null) {
+            $chromiumPath = $doctor->detectChromiumBinary();
+        }
 
         if ($chromiumPath !== null) {
             putenv("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH={$chromiumPath}");
@@ -194,12 +205,21 @@ final class TestBrowserCommand extends Command
             $memoryLimit = (string) config('unit-tester-documenter.memory_limit', '1024M');
             $forwardedArgs = $this->resolveForwardedArguments();
 
+            $bootstrapPath = str_replace('\\', '/', realpath(__DIR__.'/../../Support/browser-test-bootstrap.php') ?: (__DIR__.'/../../Support/browser-test-bootstrap.php'));
+            $pestScript = (str_ends_with(strtolower((string) $pestBinary), '.bat') && file_exists(substr((string) $pestBinary, 0, -4)))
+                ? substr((string) $pestBinary, 0, -4)
+                : (string) $pestBinary;
+            $pestScript = str_replace('\\', '/', realpath($pestScript) ?: $pestScript);
+
             $command = array_merge(
                 [
                     PHP_BINARY,
                     '-d', "memory_limit={$memoryLimit}",
                     '-d', 'output_buffering=0',
-                    (string) $pestBinary,
+                    '-d', 'display_errors=1',
+                    '-d', 'display_startup_errors=1',
+                    '-d', "auto_prepend_file={$bootstrapPath}",
+                    $pestScript,
                     $target,
                     '--colors=always',
                 ],
@@ -210,19 +230,21 @@ final class TestBrowserCommand extends Command
 
             $this->clearEnv();
 
-            $browserEnv = [
-                'BROWSER_SNAPSHOT_DIR' => base_path($runSnapshotDir),
-            ];
+            putenv('BROWSER_SNAPSHOT_DIR='.base_path($runSnapshotDir));
+            $_ENV['BROWSER_SNAPSHOT_DIR'] = base_path($runSnapshotDir);
+            $_SERVER['BROWSER_SNAPSHOT_DIR'] = base_path($runSnapshotDir);
 
             if ($chromiumPath !== null) {
-                $browserEnv['PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH'] = $chromiumPath;
-                $browserEnv['PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD'] = '1';
+                putenv("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH={$chromiumPath}");
+                putenv('PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1');
+                $_ENV['PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH'] = $chromiumPath;
+                $_ENV['PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD'] = '1';
             }
 
             $process = new Process(
                 command: $command,
                 cwd: base_path(),
-                env: $browserEnv,
+                env: null,
                 timeout: null,
             );
 
