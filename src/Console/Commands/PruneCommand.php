@@ -8,7 +8,7 @@ use DateTimeImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
-final class DocTestPruneCommand extends Command
+final class PruneCommand extends Command
 {
     /**
      * The name and signature of the console command.
@@ -21,13 +21,6 @@ final class DocTestPruneCommand extends Command
         {--a|all : Prune all test artifacts regardless of age}
         {--dry-run : Simulate pruning and display matching files without deleting}
         {--force : Force the operation without confirmation prompt}';
-
-    /**
-     * Alternative aliases for the command.
-     *
-     * @var array<int, string>
-     */
-    protected $aliases = ['doctest:prune', 'test:prune'];
 
     /**
      * The console command description.
@@ -49,14 +42,10 @@ final class DocTestPruneCommand extends Command
             return self::FAILURE;
         }
 
-        $reportsDir = (string) (config('rubberstamp.reports_dir')
-            ?: config('unit-tester-documenter.reports_dir', 'doctest-reports'));
+        $reportsDir = (string) config('rubberstamp.reports_dir', 'doctest-reports');
         $testLogDir = (string) (config('rubberstamp.test_log_dir')
-            ?: config('rubberstamp.pest_log_dir')
-            ?: config('unit-tester-documenter.test_log_dir')
-            ?: config('unit-tester-documenter.pest_log_dir', 'doctest-reports/test-log'));
-        $resultsDir = (string) (config('rubberstamp.results_dir')
-            ?: config('unit-tester-documenter.results_dir', 'doctest-reports/browser-test-log'));
+            ?: config('rubberstamp.pest_log_dir', 'doctest-reports/test-log'));
+        $resultsDir = (string) config('rubberstamp.results_dir', 'doctest-reports/browser-test-log');
 
         $reportsPath = $this->resolvePath($reportsDir);
         $testLogPath = $this->resolvePath($testLogDir);
@@ -70,7 +59,7 @@ final class DocTestPruneCommand extends Command
         $force = (bool) $this->option('force');
 
         if (! $all && $hours === null && $days === null && $keep === null) {
-            $days = (int) config('rubberstamp.prune_retention_days', config('unit-tester-documenter.prune_retention_days', 7));
+            $days = (int) config('rubberstamp.prune_retention_days', 7);
         }
 
         $criteriaMsg = $this->buildCriteriaDescription($all, $hours, $days, $keep);

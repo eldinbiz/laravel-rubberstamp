@@ -67,8 +67,6 @@ Run the root command for a quick summary of all available RubberStamp commands:
 php artisan rubberstamp
 ```
 
-*(Alias: `php artisan doctest`)*
-
 ---
 
 ### Running Feature & Unit Tests (`rubberstamp:features`)
@@ -105,16 +103,6 @@ php artisan rubberstamp:features [target] [options]
   - *Example*: `php artisan rubberstamp:features --skip-clear`
 - **`--pest-path=`**: Custom path to the Pest test runner binary.
   - *Example*: `--pest-path="vendor/bin/pest"`
-
-#### Aliases
-
-The following backward-compatible aliases are also available:
-```bash
-php artisan doctest:features
-php artisan doctest:feature
-php artisan test:features
-php artisan test:feature
-```
 
 ---
 
@@ -159,14 +147,6 @@ php artisan rubberstamp:browser [target] [options]
 - **`--pest-path=`**: Custom path to the Pest test runner binary.
   - *Example*: `--pest-path="vendor/bin/pest"`
 
-#### Aliases
-
-The following backward-compatible aliases are also available:
-```bash
-php artisan doctest:browser
-php artisan test:browser
-```
-
 ---
 
 ### Standalone Documentation Compiler (`rubberstamp:document`)
@@ -189,8 +169,6 @@ php artisan rubberstamp:document test_20260910_031304 \
     --sop="SOP-AUDIT-001" \
     --approved-by="Compliance Lead"
 ```
-
-*(Aliases: `php artisan doctest:document`, `php artisan test:document`)*
 
 ---
 
@@ -218,8 +196,6 @@ php artisan rubberstamp:prune --type=snapshots --force
 php artisan rubberstamp:prune -a
 php artisan rubberstamp:prune --all --force
 ```
-
-*(Aliases: `php artisan doctest:prune`, `php artisan test:prune`)*
 
 #### Available Pruning Options
 

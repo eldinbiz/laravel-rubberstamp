@@ -71,8 +71,7 @@ final class CorporateReportGenerator
     public function generate(array $metadata, array $testData): array
     {
         $baseDir = $this->basePath ?? (function_exists('base_path') ? base_path() : getcwd());
-        $reportsSubdir = (string) (config('rubberstamp.reports_dir')
-            ?: config('unit-tester-documenter.reports_dir', 'doctest-reports'));
+        $reportsSubdir = (string) config('rubberstamp.reports_dir', 'doctest-reports');
         $outputDir = rtrim((string) $baseDir, '/\\').DIRECTORY_SEPARATOR.trim($reportsSubdir, '/\\');
 
         if (! is_dir($outputDir)) {
@@ -143,13 +142,12 @@ final class CorporateReportGenerator
         ];
 
         $configuredView = function_exists('config')
-            ? (string) (config('rubberstamp.report_view') ?: config('unit-tester-documenter.report_view'))
+            ? (string) config('rubberstamp.report_view')
             : null;
 
         $candidateViews = array_filter([
             $configuredView,
             'rubberstamp::report',
-            'unit-tester-documenter::report',
         ]);
 
         if (function_exists('view')) {

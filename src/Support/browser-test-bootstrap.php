@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Pest\Plugin;
 use Eldinbiz\RubberStamp\Support\BrowserSnapshotManager;
+use Pest\Plugin;
 
 require_once __DIR__.'/BrowserSnapshotManager.php';
 

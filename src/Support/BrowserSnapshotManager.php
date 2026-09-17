@@ -150,7 +150,7 @@ final class BrowserSnapshotManager
 
             if (function_exists('config')) {
                 try {
-                    $timeout = (int) config('rubberstamp.browser_timeout', config('unit-tester-documenter.browser_timeout', 10_000));
+                    $timeout = (int) config('rubberstamp.browser_timeout', 10_000);
                 } catch (Throwable) {
                     $timeout = 10_000;
                 }
@@ -200,9 +200,4 @@ final class BrowserSnapshotManager
     {
         self::$activeBrowserPage = null;
     }
-}
-
-// Backward compatibility alias
-if (! class_exists(\UnitTesterDocumenter\UnitTesterDocumenter\Support\BrowserSnapshotManager::class, false)) {
-    class_alias(BrowserSnapshotManager::class, \UnitTesterDocumenter\UnitTesterDocumenter\Support\BrowserSnapshotManager::class);
 }

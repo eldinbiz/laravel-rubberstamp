@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 
 beforeEach(function () {
-    $this->tempDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'doctest_prune_test_'.uniqid();
+    $this->tempDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'rubberstamp_prune_test_'.uniqid();
     $this->reportsDir = $this->tempDir.DIRECTORY_SEPARATOR.'reports';
     $this->testLogDir = $this->tempDir.DIRECTORY_SEPARATOR.'test-log';
     $this->resultsDir = $this->tempDir.DIRECTORY_SEPARATOR.'browser-test-log';
@@ -18,9 +18,6 @@ beforeEach(function () {
     config()->set('rubberstamp.reports_dir', $this->reportsDir);
     config()->set('rubberstamp.test_log_dir', $this->testLogDir);
     config()->set('rubberstamp.results_dir', $this->resultsDir);
-    config()->set('unit-tester-documenter.reports_dir', $this->reportsDir);
-    config()->set('unit-tester-documenter.test_log_dir', $this->testLogDir);
-    config()->set('unit-tester-documenter.results_dir', $this->resultsDir);
 });
 
 afterEach(function () {
@@ -33,14 +30,13 @@ it('registers the rubberstamp:prune artisan command', function () {
     $commands = Artisan::all();
 
     expect($commands)->toHaveKey('rubberstamp:prune')
-        ->and($commands)->toHaveKey('doctest:prune');
+        ->and($commands)->not->toHaveKey('doctest:prune');
 });
 
-it('registers the doctest:prune and test:prune aliases', function () {
+it('registers no aliases for rubberstamp:prune', function () {
     $command = Artisan::all()['rubberstamp:prune'];
 
-    expect($command->getAliases())->toContain('doctest:prune')
-        ->and($command->getAliases())->toContain('test:prune');
+    expect($command->getAliases())->toBeEmpty();
 });
 
 it('has the expected command definition and options', function () {

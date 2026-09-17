@@ -2,20 +2,19 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Artisan;
 use Eldinbiz\RubberStamp\Support\AuditMetadataResolver;
 use Eldinbiz\RubberStamp\Support\CorporateReportGenerator;
 use Eldinbiz\RubberStamp\Support\PestLogParser;
+use Illuminate\Support\Facades\Artisan;
 
-it('registers rubberstamp:document artisan command with aliases and options', function () {
+it('registers rubberstamp:document artisan command without aliases and with options', function () {
     $commands = Artisan::all();
 
     expect($commands)->toHaveKey('rubberstamp:document')
-        ->and($commands)->toHaveKey('doctest:document');
+        ->and($commands)->not->toHaveKey('doctest:document');
 
     $command = $commands['rubberstamp:document'];
-    expect($command->getAliases())->toContain('doctest:document')
-        ->and($command->getAliases())->toContain('test:document')
+    expect($command->getAliases())->toBeEmpty()
         ->and($command->getDefinition()->hasOption('author'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('sop'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('document-id'))->toBeTrue()
@@ -102,7 +101,6 @@ it('generates corporate html report with strict omission of unpassed sign-off ca
 
     config([
         'rubberstamp.reports_dir' => 'reports',
-        'unit-tester-documenter.reports_dir' => 'reports',
     ]);
 
     $generator = new CorporateReportGenerator($tmpDir);
@@ -190,7 +188,6 @@ it('numbers test cases sequentially with CASE prefix derived from document id pr
 
     config([
         'rubberstamp.reports_dir' => 'reports',
-        'unit-tester-documenter.reports_dir' => 'reports',
     ]);
 
     $generator = new CorporateReportGenerator($tmpDir);
@@ -303,7 +300,6 @@ it('links test cases to visual evidence anchors and labels screenshot evidence w
 
     config([
         'rubberstamp.reports_dir' => 'reports',
-        'unit-tester-documenter.reports_dir' => 'reports',
     ]);
 
     $generator = new CorporateReportGenerator($tmpDir);
@@ -396,7 +392,6 @@ it('correlates screenshots even when test names contain hyphens, commas, and pun
 
     config([
         'rubberstamp.reports_dir' => 'reports',
-        'unit-tester-documenter.reports_dir' => 'reports',
     ]);
 
     $generator = new CorporateReportGenerator($tmpDir);
@@ -524,8 +519,6 @@ it('allows developers to customize report using a custom blade view', function (
     config([
         'rubberstamp.reports_dir' => 'reports',
         'rubberstamp.report_view' => 'rubberstamp::report',
-        'unit-tester-documenter.reports_dir' => 'reports',
-        'unit-tester-documenter.report_view' => 'unit-tester-documenter::report',
     ]);
 
     $generator = new CorporateReportGenerator($tmpDir);

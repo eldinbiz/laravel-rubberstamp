@@ -52,8 +52,3 @@ trait CapturesBrowserSnapshots
         BrowserSnapshotManager::resetActiveBrowserPage();
     }
 }
-
-// Backward compatibility alias
-if (! trait_exists(\UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots::class, false)) {
-    class_alias(CapturesBrowserSnapshots::class, \UnitTesterDocumenter\UnitTesterDocumenter\Concerns\CapturesBrowserSnapshots::class);
-}

@@ -12,7 +12,7 @@ use Eldinbiz\RubberStamp\Support\CorporateReportGenerator;
 use Eldinbiz\RubberStamp\Support\PestLogParser;
 use Illuminate\Support\Env;
 
-trait InteractsWithDocTestOptions
+trait InteractsWithRubberStampOptions
 {
     /**
      * Resolve documentation metadata either interactively or from CLI options.
@@ -38,7 +38,7 @@ trait InteractsWithDocTestOptions
         $isInteractive = (bool) $this->option('interactive');
 
         if (! $isInteractive) {
-            $defaultDocId = (string) config('rubberstamp.document_id_prefix', config('unit-tester-documenter.document_id_prefix', 'DOC-TEST-'));
+            $defaultDocId = (string) config('rubberstamp.document_id_prefix', 'DOC-TEST-');
 
             return [
                 'author' => $resolver->resolveAuthor($cliAuthor),
@@ -60,7 +60,7 @@ trait InteractsWithDocTestOptions
         $authorInput = $this->ask('Tester / Author Name', $defaultAuthor);
         $author = is_string($authorInput) && trim($authorInput) !== '' ? trim($authorInput) : $defaultAuthor;
 
-        $defaultPrefix = $cliDocId ?: (string) config('rubberstamp.document_id_prefix', config('unit-tester-documenter.document_id_prefix', 'DOC-TEST-'));
+        $defaultPrefix = $cliDocId ?: (string) config('rubberstamp.document_id_prefix', 'DOC-TEST-');
         $prefixInput = $this->ask('Document ID Prefix', $defaultPrefix);
         $docIdPrefix = is_string($prefixInput) && trim($prefixInput) !== '' ? trim($prefixInput) : $defaultPrefix;
 
@@ -114,7 +114,7 @@ trait InteractsWithDocTestOptions
         array $docOptions,
         string $timestamp,
     ): ?array {
-        $autoDoc = (bool) config('rubberstamp.auto_document', config('unit-tester-documenter.auto_document', true));
+        $autoDoc = (bool) config('rubberstamp.auto_document', true);
 
         if ($this->option('no-doc') || ! $autoDoc) {
             return null;
@@ -134,9 +134,9 @@ trait InteractsWithDocTestOptions
 
         $parsedData = $parser->parse($rawLog, $snapshotDir);
 
-        $reviewedByConfig = (array) config('rubberstamp.signoff.reviewed_by', config('unit-tester-documenter.signoff.reviewed_by', []));
-        $approvedByConfig = (array) config('rubberstamp.signoff.approved_by', config('unit-tester-documenter.signoff.approved_by', []));
-        $ackByConfig = (array) config('rubberstamp.signoff.acknowledged_by', config('unit-tester-documenter.signoff.acknowledged_by', []));
+        $reviewedByConfig = (array) config('rubberstamp.signoff.reviewed_by', []);
+        $approvedByConfig = (array) config('rubberstamp.signoff.approved_by', []);
+        $ackByConfig = (array) config('rubberstamp.signoff.acknowledged_by', []);
 
         $reviewedByRows = $resolver->parseSignoffOption(
             $docOptions['reviewed_by'],
@@ -209,7 +209,7 @@ trait InteractsWithDocTestOptions
      */
     protected function clearEnv(): void
     {
-        if (! $this->hasOption('env') || ! $this->option('env')) {
+        if (! $this->option('env')) {
             $path = function_exists('base_path') ? base_path() : (string) getcwd();
             $environmentPath = $path;
             $environmentFile = '.env';
@@ -273,9 +273,4 @@ trait InteractsWithDocTestOptions
 
         return $vars;
     }
-}
-
-// Backward compatibility alias
-if (! trait_exists(\UnitTesterDocumenter\UnitTesterDocumenter\Console\Concerns\InteractsWithDocTestOptions::class, false)) {
-    class_alias(InteractsWithDocTestOptions::class, \UnitTesterDocumenter\UnitTesterDocumenter\Console\Concerns\InteractsWithDocTestOptions::class);
 }

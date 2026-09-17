@@ -2,25 +2,22 @@
 
 declare(strict_types=1);
 
+use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithRubberStampOptions;
 use Illuminate\Console\Command;
 use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Artisan;
-use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithDocTestOptions;
 
 it('registers the rubberstamp:features artisan command', function () {
     $commands = Artisan::all();
 
     expect($commands)->toHaveKey('rubberstamp:features')
-        ->and($commands)->toHaveKey('doctest:features');
+        ->and($commands)->not->toHaveKey('doctest:features');
 });
 
-it('registers the doctest:features, doctest:feature, test:features, and test:feature aliases', function () {
+it('registers no aliases for rubberstamp:features', function () {
     $command = Artisan::all()['rubberstamp:features'];
 
-    expect($command->getAliases())->toContain('doctest:features')
-        ->and($command->getAliases())->toContain('doctest:feature')
-        ->and($command->getAliases())->toContain('test:features')
-        ->and($command->getAliases())->toContain('test:feature');
+    expect($command->getAliases())->toBeEmpty();
 });
 
 it('has the expected command definition and options', function () {
@@ -53,7 +50,7 @@ it('clears variables defined in environment file', function () {
 
     $command = new class extends Command
     {
-        use InteractsWithDocTestOptions;
+        use InteractsWithRubberStampOptions;
 
         public function testClear(string $path, string $file): void
         {

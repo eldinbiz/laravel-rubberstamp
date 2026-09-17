@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eldinbiz\RubberStamp\Console\Commands;
 
-use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithDocTestOptions;
+use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithRubberStampOptions;
 use Eldinbiz\RubberStamp\Support\AuditMetadataResolver;
 use Eldinbiz\RubberStamp\Support\BrowserEnvironmentDoctor;
 use Illuminate\Console\Command;
@@ -12,7 +12,7 @@ use Symfony\Component\Process\Process;
 
 final class TestBrowserCommand extends Command
 {
-    use InteractsWithDocTestOptions;
+    use InteractsWithRubberStampOptions;
 
     /**
      * The name and signature of the console command.
@@ -31,13 +31,6 @@ final class TestBrowserCommand extends Command
         {--acknowledged-by= : Pipe-separated acknowledgers/roles (e.g. "Bob,Project Manager|Product Owner")}
         {--i|interactive : Interactively configure audit metadata and sign-off approval sheet}
         {--no-doc : Skip corporate report generation}';
-
-    /**
-     * Alternative aliases for the command.
-     *
-     * @var array<int, string>
-     */
-    protected $aliases = ['doctest:browser', 'test:browser'];
 
     /**
      * The console command description.
@@ -59,7 +52,7 @@ final class TestBrowserCommand extends Command
     {
         $doctor = new BrowserEnvironmentDoctor(
             base_path(),
-            (string) config('unit-tester-documenter.chromium_binary') ?: null,
+            (string) config('rubberstamp.chromium_binary') ?: null,
         );
 
         if ($this->option('doctor') || $this->option('check')) {
@@ -133,8 +126,7 @@ final class TestBrowserCommand extends Command
         $resolver = new AuditMetadataResolver(base_path());
         $docOptions = $this->resolveDocOptions($resolver);
 
-        $resultsDir = (string) (config('rubberstamp.results_dir')
-            ?: config('unit-tester-documenter.results_dir', 'doctest-reports/browser-test-log'));
+        $resultsDir = (string) config('rubberstamp.results_dir', 'doctest-reports/browser-test-log');
 
         $runSnapshotDir = $resultsDir.DIRECTORY_SEPARATOR.$runName;
         $testLog = $resultsDir.DIRECTORY_SEPARATOR.$runName.'.log';
@@ -146,8 +138,7 @@ final class TestBrowserCommand extends Command
         $_ENV['BROWSER_SNAPSHOT_DIR'] = base_path($runSnapshotDir);
         $_SERVER['BROWSER_SNAPSHOT_DIR'] = base_path($runSnapshotDir);
 
-        $configuredChromium = (string) (config('rubberstamp.chromium_binary')
-            ?: config('unit-tester-documenter.chromium_binary')) ?: null;
+        $configuredChromium = (string) config('rubberstamp.chromium_binary') ?: null;
         $envChromium = getenv('PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH') ?: null;
 
         $chromiumPath = null;
@@ -196,7 +187,6 @@ final class TestBrowserCommand extends Command
             $target = is_string($rawTarget) && $rawTarget !== '' ? $rawTarget : 'tests/Browser';
             $pestBinary = $this->option('pest-path')
                 ?: config('rubberstamp.pest_binary')
-                ?: config('unit-tester-documenter.pest_binary')
                 ?: $doctor->detectPestBinary();
 
             if ($pestBinary === null || ! file_exists((string) $pestBinary)) {
@@ -205,7 +195,7 @@ final class TestBrowserCommand extends Command
                 return self::FAILURE;
             }
 
-            $memoryLimit = (string) config('rubberstamp.memory_limit', config('unit-tester-documenter.memory_limit', '1024M'));
+            $memoryLimit = (string) config('rubberstamp.memory_limit', '1024M');
             $forwardedArgs = $this->resolveForwardedArguments();
 
             $bootstrapPath = str_replace('\\', '/', realpath(__DIR__.'/../../Support/browser-test-bootstrap.php') ?: (__DIR__.'/../../Support/browser-test-bootstrap.php'));
@@ -279,7 +269,7 @@ final class TestBrowserCommand extends Command
             );
 
             if ($exitCode !== 0) {
-                if ((bool) config('unit-tester-documenter.cleanup_snapshots_on_failure', true)) {
+                if ((bool) config('rubberstamp.cleanup_snapshots_on_failure', true)) {
                     $this->deleteDirectory(base_path($runSnapshotDir));
                 }
 
@@ -287,7 +277,7 @@ final class TestBrowserCommand extends Command
                 $this->line('<fg=red;options=bold>=================================================================</>');
                 $this->line("<fg=red;options=bold>Browser test failure detected (exit code: {$exitCode}).</>");
 
-                if ((bool) config('unit-tester-documenter.cleanup_snapshots_on_failure', true)) {
+                if ((bool) config('rubberstamp.cleanup_snapshots_on_failure', true)) {
                     $this->line("<fg=yellow>Cleaned up snapshot directory:</> {$runSnapshotDir}");
                 }
                 $this->line("<fg=white>Log preserved:</> {$testLog}");
@@ -338,11 +328,7 @@ final class TestBrowserCommand extends Command
         $cmdIndex = false;
 
         foreach ($argv as $index => $token) {
-            if (
-                $token === 'rubberstamp:browser' || str_ends_with($token, 'rubberstamp:browser') ||
-                $token === 'doctest:browser' || str_ends_with($token, 'doctest:browser') ||
-                $token === 'test:browser' || str_ends_with($token, 'test:browser')
-            ) {
+            if ($token === 'rubberstamp:browser' || str_ends_with($token, 'rubberstamp:browser')) {
                 $cmdIndex = $index;
 
                 break;

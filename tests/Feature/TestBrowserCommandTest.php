@@ -8,14 +8,13 @@ it('registers the rubberstamp:browser artisan command', function () {
     $commands = Artisan::all();
 
     expect($commands)->toHaveKey('rubberstamp:browser')
-        ->and($commands)->toHaveKey('doctest:browser');
+        ->and($commands)->not->toHaveKey('doctest:browser');
 });
 
-it('registers the doctest:browser and test:browser aliases', function () {
+it('registers no aliases for rubberstamp:browser', function () {
     $command = Artisan::all()['rubberstamp:browser'];
 
-    expect($command->getAliases())->toContain('doctest:browser')
-        ->and($command->getAliases())->toContain('test:browser');
+    expect($command->getAliases())->toBeEmpty();
 });
 
 it('has the expected command description and options', function () {
@@ -39,8 +38,7 @@ it('exposes the default package configurations', function () {
         ->and(config('rubberstamp.pest_log_dir'))->toBe('doctest-reports/test-log')
         ->and(config('rubberstamp.test_log_dir'))->toBe('doctest-reports/test-log')
         ->and(config('rubberstamp.memory_limit'))->toBe('1024M')
-        ->and(config('rubberstamp.cleanup_snapshots_on_failure'))->toBeTrue()
-        ->and(config('unit-tester-documenter.results_dir'))->toBe('doctest-reports/browser-test-log');
+        ->and(config('rubberstamp.cleanup_snapshots_on_failure'))->toBeTrue();
 });
 
 it('resolves browser test artifacts inside results_dir', function () {

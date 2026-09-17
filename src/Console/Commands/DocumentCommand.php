@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Eldinbiz\RubberStamp\Console\Commands;
 
-use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithDocTestOptions;
+use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithRubberStampOptions;
 use Eldinbiz\RubberStamp\Support\AuditMetadataResolver;
 use Illuminate\Console\Command;
 
-final class DocTestDocumentCommand extends Command
+final class DocumentCommand extends Command
 {
-    use InteractsWithDocTestOptions;
+    use InteractsWithRubberStampOptions;
 
     /**
      * The name and signature of the console command.
@@ -27,13 +27,6 @@ final class DocTestDocumentCommand extends Command
         {--no-doc : Dry run without writing report files}';
 
     /**
-     * Alternative aliases for the command.
-     *
-     * @var array<int, string>
-     */
-    protected $aliases = ['doctest:document', 'test:document'];
-
-    /**
      * The console command description.
      */
     protected $description = 'Generate or regenerate corporate HTML test documentation from existing test logs.';
@@ -44,11 +37,8 @@ final class DocTestDocumentCommand extends Command
     public function handle(): int
     {
         $testLogDir = (string) (config('rubberstamp.test_log_dir')
-            ?: config('rubberstamp.pest_log_dir')
-            ?: config('unit-tester-documenter.test_log_dir')
-            ?: config('unit-tester-documenter.pest_log_dir', 'doctest-reports/test-log'));
-        $resultsDir = (string) (config('rubberstamp.results_dir')
-            ?: config('unit-tester-documenter.results_dir', 'doctest-reports/browser-test-log'));
+            ?: config('rubberstamp.pest_log_dir', 'doctest-reports/test-log'));
+        $resultsDir = (string) config('rubberstamp.results_dir', 'doctest-reports/browser-test-log');
 
         $resolved = $this->resolveTargetRun($testLogDir, $resultsDir);
 

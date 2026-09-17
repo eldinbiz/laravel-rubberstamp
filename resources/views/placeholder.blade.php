@@ -1,1 +1,1 @@
-<div>UnitTesterDocumenter placeholder view.</div>
+<div>RubberStamp placeholder view.</div>

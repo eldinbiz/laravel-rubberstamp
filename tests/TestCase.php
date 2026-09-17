@@ -16,8 +16,3 @@ abstract class TestCase extends Orchestra
         ];
     }
 }
-
-// Backward compatibility alias
-if (! class_exists(\UnitTesterDocumenter\UnitTesterDocumenter\Tests\TestCase::class, false)) {
-    class_alias(TestCase::class, \UnitTesterDocumenter\UnitTesterDocumenter\Tests\TestCase::class);
-}

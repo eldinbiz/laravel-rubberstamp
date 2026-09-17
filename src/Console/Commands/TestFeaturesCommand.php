@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Eldinbiz\RubberStamp\Console\Commands;
 
-use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithDocTestOptions;
+use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithRubberStampOptions;
 use Eldinbiz\RubberStamp\Support\AuditMetadataResolver;
 use Illuminate\Console\Command;
 use Symfony\Component\Process\Process;
 
 final class TestFeaturesCommand extends Command
 {
-    use InteractsWithDocTestOptions;
+    use InteractsWithRubberStampOptions;
 
     /**
      * The name and signature of the console command.
@@ -28,13 +28,6 @@ final class TestFeaturesCommand extends Command
         {--acknowledged-by= : Pipe-separated acknowledgers/roles (e.g. "Bob,Project Manager|Product Owner")}
         {--i|interactive : Interactively configure audit metadata and sign-off approval sheet}
         {--no-doc : Skip corporate report generation}';
-
-    /**
-     * Alternative aliases for the command.
-     *
-     * @var array<int, string>
-     */
-    protected $aliases = ['doctest:features', 'doctest:feature', 'test:features', 'test:feature'];
 
     /**
      * The console command description.
@@ -61,9 +54,7 @@ final class TestFeaturesCommand extends Command
         $docOptions = $this->resolveDocOptions($resolver);
 
         $testLogDir = (string) (config('rubberstamp.test_log_dir')
-            ?: config('rubberstamp.pest_log_dir')
-            ?: config('unit-tester-documenter.test_log_dir')
-            ?: config('unit-tester-documenter.pest_log_dir', 'doctest-reports/test-log'));
+            ?: config('rubberstamp.pest_log_dir', 'doctest-reports/test-log'));
         $testLog = $testLogDir.DIRECTORY_SEPARATOR.$runName.'.log';
 
         $this->ensureDirectoryExists(base_path($testLogDir));
@@ -81,7 +72,7 @@ final class TestFeaturesCommand extends Command
             return self::FAILURE;
         }
 
-        $memoryLimit = (string) config('rubberstamp.memory_limit', config('unit-tester-documenter.memory_limit', '1024M'));
+        $memoryLimit = (string) config('rubberstamp.memory_limit', '1024M');
         $forwardedArgs = $this->resolveForwardedArguments();
 
         $rawTarget = $this->argument('target');
@@ -168,8 +159,7 @@ final class TestFeaturesCommand extends Command
     private function resolvePestBinary(): ?string
     {
         $customPath = $this->option('pest-path')
-            ?: config('rubberstamp.pest_binary')
-            ?: config('unit-tester-documenter.pest_binary');
+            ?: config('rubberstamp.pest_binary');
 
         if ($customPath !== null && is_string($customPath)) {
             return file_exists($customPath) ? $customPath : null;
@@ -201,13 +191,7 @@ final class TestFeaturesCommand extends Command
         $cmdIndex = false;
 
         foreach ($argv as $index => $token) {
-            if (
-                $token === 'rubberstamp:features' || str_ends_with($token, 'rubberstamp:features') ||
-                $token === 'doctest:features' || str_ends_with($token, 'doctest:features') ||
-                $token === 'doctest:feature' || str_ends_with($token, 'doctest:feature') ||
-                $token === 'test:features' || str_ends_with($token, 'test:features') ||
-                $token === 'test:feature' || str_ends_with($token, 'test:feature')
-            ) {
+            if ($token === 'rubberstamp:features' || str_ends_with($token, 'rubberstamp:features')) {
                 $cmdIndex = $index;
 
                 break;

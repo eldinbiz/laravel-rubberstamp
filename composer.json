@@ -7,8 +7,7 @@
     "rubberstamp",
     "audit-trail",
     "compliance",
-    "pest-reports",
-    "unit-tester-documenter"
+    "pest-reports"
   ],
   "homepage": "https://github.com/eldinbiz/laravel-rubberstamp",
   "license": "MIT",
@@ -38,14 +37,12 @@
   },
   "autoload": {
     "psr-4": {
-      "Eldinbiz\\RubberStamp\\": "src/",
-      "UnitTesterDocumenter\\UnitTesterDocumenter\\": "src/"
+      "Eldinbiz\\RubberStamp\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
       "Eldinbiz\\RubberStamp\\Tests\\": "tests/",
-      "UnitTesterDocumenter\\UnitTesterDocumenter\\Tests\\": "tests/",
       "Workbench\\App\\": "workbench/app/",
       "Workbench\\Database\\Factories\\": "workbench/database/factories/",
       "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
@@ -98,8 +95,7 @@
         "Eldinbiz\\RubberStamp\\RubberStampServiceProvider"
       ],
       "aliases": {
-        "RubberStamp": "Eldinbiz\\RubberStamp\\Facades\\RubberStamp",
-        "UnitTesterDocumenter": "UnitTesterDocumenter\\UnitTesterDocumenter\\Facades\\UnitTesterDocumenter"
+        "RubberStamp": "Eldinbiz\\RubberStamp\\Facades\\RubberStamp"
       }
     }
   },
