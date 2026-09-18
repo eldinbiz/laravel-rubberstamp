@@ -13,15 +13,13 @@
 
 ## Overview
 
-Welcome to corporate bureaucracy. You just wrote pristine Pest tests, your CI pipeline is glowing green, and your commit history is flawless.
+You just wrote pristine Pest tests, your CI pipeline is glowing green, and your commit history is flawless. Too bad none of that matters to your managers in the corporate world.
 
-Too bad none of that matters to your enterprise managers.
+Automated test results would happily live in Git history, a Confluence page, a Microsoft Loop workspace, or a Markdown file in your repo. But as a corporate slave developer surviving in an enterprise compliance dungeon, you are required to produce **formal, printable test reports**—complete with document control numbers, SOP tracking codes, and multi-tier managerial sign-off blocks that someone will inevitably print onto paper, give hand signature, place into a binder, and never see the light again.
 
-In a sensible world, automated test results would happily live in Git history, a Confluence page, a Microsoft Loop workspace, or a Markdown file in your repo. But as a corporate slave developer surviving in an enterprise compliance dungeon, you are required to produce **formal, printable test reports**—complete with document control numbers, SOP tracking codes, and multi-tier managerial sign-off blocks that someone will inevitably print onto paper, punch holes into, place into a binder, and never look at ever again.
+**RubberStamp** is a laravel package that exists so you never have to spend your Friday afternoon manually copy-pasting terminal output, cropping browser screenshots, and assembling Word documents for the compliance department.
 
-**RubberStamp** exists so you never have to spend your Friday afternoon manually copy-pasting terminal output, cropping browser screenshots, and assembling Word documents for the compliance department.
-
-With a single Artisan command, RubberStamp runs your Pest tests, flushes configuration and view caches, records audit logs, captures visual browser snapshots, and automatically compiles a **print-ready, single-file HTML test report** complete with sign-off blocks. Hand over the test report your manager will blindly sign without reading, and get back to writing actual code.
+With Artisan command, RubberStamp runs your Pest tests, flushes configuration and view caches, records audit logs, captures visual browser snapshots, and automatically compiles a **print-ready, single-file HTML test report** complete with sign-off blocks. Hand over the test report your manager will "review them" blindly and sign, feeling that they've achieved something big in project management.
 
 ---
 
