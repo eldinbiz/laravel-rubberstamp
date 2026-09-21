@@ -51,6 +51,7 @@ Always use the canonical `rubberstamp:*` commands:
    - Streams output in real-time to `doctest-reports/test-log/test_<timestamp>.log`.
    - Compiles print-ready corporate HTML audit reports to `doctest-reports/test_<timestamp>.html`.
    - Flags:
+     - `--selected-test-suite`: Interactively select one or more test suites or test classes to execute using terminal checkboxes.
      - `--document-id="DOC-TEST-"`: Document control ID prefix.
      - `--sop="SOP-DEV-001"`: SOP tracking policy or RFC code.
      - `--author="Jane Doe"`: Tester or author name (defaults to Git `user.name`).
@@ -67,6 +68,7 @@ Always use the canonical `rubberstamp:*` commands:
    ```
    - **Zero-Configuration**: Does not require adding traits or modifying `tests/TestCase.php`—hooks boot automatically at runtime.
    - Pre-flight diagnostic check: `--doctor` (or `--check`) verifies Playwright, Node, and Chromium binaries.
+   - `--selected-test-suite`: Interactively select one or more browser test classes or suites using terminal checkboxes.
    - `--skip-health-check`: Skip pre-flight doctor checks for faster repeated runs.
    - Captures isolated per-test visual snapshots into `doctest-reports/browser-test-log/<run>/<Suite>/<slug>.png`.
    - Embeds visual evidence as base64 images directly into the standalone HTML report (`doctest-reports/browser_test_<timestamp>.html`).

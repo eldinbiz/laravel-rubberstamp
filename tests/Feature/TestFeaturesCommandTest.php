@@ -28,7 +28,86 @@ it('has the expected command definition and options', function () {
         ->and($command->getDefinition()->getArgument('target')->isRequired())->toBeFalse()
         ->and($command->getDefinition()->getArgument('target')->getDefault())->toBeNull()
         ->and($command->getDefinition()->hasOption('pest-path'))->toBeTrue()
-        ->and($command->getDefinition()->hasOption('skip-clear'))->toBeTrue();
+        ->and($command->getDefinition()->hasOption('skip-clear'))->toBeTrue()
+        ->and($command->getDefinition()->hasOption('selected-test-suite'))->toBeTrue();
+});
+
+it('discovers available feature test suites and classes', function () {
+    $command = new class extends Command
+    {
+        use InteractsWithRubberStampOptions;
+
+        /**
+         * @return array<string, string>
+         */
+        public function testDiscovery(): array
+        {
+            return $this->discoverAvailableTestSuites('features');
+        }
+    };
+
+    $options = $command->testDiscovery();
+
+    expect($options)->toBeArray()
+        ->and(count($options))->toBeGreaterThan(0);
+});
+
+it('allows interactive test suite selection via --selected-test-suite in features command', function () {
+    $this->artisan('rubberstamp:features', [
+        '--selected-test-suite' => true,
+        '--skip-clear' => true,
+        '--pest-path' => '/nonexistent/path/to/pest',
+    ])
+        ->expectsQuestion('Select features test suites or classes to run:', ['1'])
+        ->assertExitCode(1);
+});
+
+it('allows interactive test suite selection when cache clearing is enabled', function () {
+    $this->artisan('rubberstamp:features', [
+        '--selected-test-suite' => true,
+        '--pest-path' => '/nonexistent/path/to/pest',
+    ])
+        ->expectsQuestion('Select features test suites or classes to run:', ['1'])
+        ->assertExitCode(1);
+});
+
+it('deduplicates child test files when parent suite directory is selected', function () {
+    $command = new class extends Command
+    {
+        use InteractsWithRubberStampOptions;
+
+        /**
+         * @param  array<int, string>  $selected
+         * @param  array<string, string>  $options
+         * @return array<int, string>
+         */
+        public function testDeduplication(array $selected, array $options): array
+        {
+            $reflection = new ReflectionMethod($this, 'resolveSelectedTargets');
+
+            return $reflection->invoke($this, $selected, $options);
+        }
+    };
+
+    $selected = [
+        'tests/Feature',
+        'tests/Feature/ExampleTest.php',
+    ];
+
+    $targets = $command->testDeduplication($selected, []);
+
+    expect($targets)->toBe(['tests/Feature']);
+});
+
+it('aborts gracefully when no feature test suites are discovered', function () {
+    $this->artisan('rubberstamp:features', [
+        'target' => 'tests/NonExistentSuiteDir',
+        '--selected-test-suite' => true,
+        '--skip-clear' => true,
+    ])
+        ->expectsOutputToContain('No test suites or classes discovered for [features].')
+        ->expectsOutputToContain('No test suites selected. Aborting.')
+        ->assertExitCode(0);
 });
 
 it('handles missing pest executable gracefully', function () {

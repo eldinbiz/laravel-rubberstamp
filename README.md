@@ -81,6 +81,8 @@ php artisan rubberstamp:features [target] [options]
 
 - **`target`** *(argument)*: Optional test file or directory path to execute. If omitted, executes all suites defined in your `phpunit.xml`.
   - *Example*: `php artisan rubberstamp:features tests/Feature/OrderProcessingTest.php`
+- **`--selected-test-suite`**: Interactively select one or more test suites or test classes to execute using terminal checkboxes (`Laravel\Prompts\multiselect`).
+  - *Example*: `php artisan rubberstamp:features --selected-test-suite`
 - **`--document-id=`**: Custom Document ID prefix for the generated corporate audit report. (Defaults to `DOC-TEST-` or `RUBBERSTAMP_DOCUMENT_ID_PREFIX`).
   - *Example*: `--document-id="UAT-ERP"`
 - **`--sop=`**: Associated Standard Operating Procedure (SOP) policy or RFC ticket code. (Defaults to `N/A` or `RUBBERSTAMP_SOP`).
@@ -122,6 +124,8 @@ php artisan rubberstamp:browser [target] [options]
 
 - **`target`** *(argument)*: Optional browser test file or directory path to execute. (Defaults to `tests/Browser`).
   - *Example*: `php artisan rubberstamp:browser tests/Browser/LoginFlowTest.php`
+- **`--selected-test-suite`**: Interactively select one or more browser test classes or suites to execute using terminal checkboxes.
+  - *Example*: `php artisan rubberstamp:browser --selected-test-suite`
 - **`--doctor`**, **`--check`**: Run pre-flight Playwright environment, Node dependencies, and Chromium binary diagnostics only without running tests.
   - *Example*: `php artisan rubberstamp:browser --doctor`
 - **`--skip-health-check`**: Skip the pre-flight environment health check and run browser tests directly.

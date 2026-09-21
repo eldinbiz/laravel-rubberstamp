@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithRubberStampOptions;
 use Eldinbiz\RubberStamp\Support\BrowserSnapshotManager;
+use Illuminate\Console\Command;
 
 it('registers the rubberstamp:browser artisan command', function () {
     $commands = Artisan::all();
@@ -24,7 +26,46 @@ it('has the expected command description and options', function () {
         ->and($command->getDefinition()->hasOption('doctor'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('check'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('skip-health-check'))->toBeTrue()
+        ->and($command->getDefinition()->hasOption('selected-test-suite'))->toBeTrue()
         ->and($command->getDefinition()->hasArgument('target'))->toBeTrue();
+});
+
+it('discovers browser test classes when present', function () {
+    $command = new class extends Command
+    {
+        use InteractsWithRubberStampOptions;
+
+        /**
+         * @return array<string, string>
+         */
+        public function testDiscovery(): array
+        {
+            return $this->discoverAvailableTestSuites('browser');
+        }
+    };
+
+    $options = $command->testDiscovery();
+    expect($options)->toBeArray();
+});
+
+it('aborts gracefully when no browser test suites are discovered', function () {
+    $this->artisan('rubberstamp:browser', [
+        '--selected-test-suite' => true,
+        '--skip-health-check' => true,
+    ])
+        ->expectsOutputToContain('No test suites or classes discovered for [browser].')
+        ->assertExitCode(0);
+});
+
+it('allows interactive browser test suite selection when targets exist', function () {
+    $this->artisan('rubberstamp:browser', [
+        'target' => 'tests/Feature',
+        '--selected-test-suite' => true,
+        '--skip-health-check' => true,
+        '--pest-path' => '/nonexistent/path/to/pest',
+    ])
+        ->expectsQuestion('Select browser test suites or classes to run:', ['1'])
+        ->assertExitCode(1);
 });
 
 it('can run doctor diagnostics via artisan rubberstamp:browser --doctor', function () {

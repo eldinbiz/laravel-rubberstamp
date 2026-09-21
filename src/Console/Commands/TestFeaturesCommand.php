@@ -18,6 +18,7 @@ final class TestFeaturesCommand extends Command
      */
     protected $signature = 'rubberstamp:features
         {target? : Optional test file or directory to execute (defaults to running all test suites via phpunit.xml)}
+        {--selected-test-suite : Interactively select one or more test suites or classes to run}
         {--pest-path= : Custom path to Pest binary}
         {--skip-clear : Skip config:clear and view:clear before running tests}
         {--author= : Author/tester name (defaults to git config user.name)}
@@ -59,9 +60,19 @@ final class TestFeaturesCommand extends Command
 
         $this->ensureDirectoryExists(base_path($testLogDir));
 
-        if (! $this->option('skip-clear')) {
-            $this->callSilently('config:clear');
-            $this->callSilently('view:clear');
+        $rawTarget = $this->argument('target');
+        $target = is_string($rawTarget) && $rawTarget !== '' ? $rawTarget : null;
+
+        $selectedTargets = [];
+
+        if ($this->option('selected-test-suite')) {
+            $selectedTargets = $this->promptForTestSuites('features', $target);
+
+            if (empty($selectedTargets)) {
+                $this->warn('No test suites selected. Aborting.');
+
+                return self::SUCCESS;
+            }
         }
 
         $pestBinary = $this->resolvePestBinary();
@@ -72,11 +83,13 @@ final class TestFeaturesCommand extends Command
             return self::FAILURE;
         }
 
+        if (! $this->option('skip-clear')) {
+            $this->callSilently('config:clear');
+            $this->callSilently('view:clear');
+        }
+
         $memoryLimit = (string) config('rubberstamp.memory_limit', '1024M');
         $forwardedArgs = $this->resolveForwardedArguments();
-
-        $rawTarget = $this->argument('target');
-        $target = is_string($rawTarget) && $rawTarget !== '' ? $rawTarget : null;
 
         $command = [
             PHP_BINARY,
@@ -85,8 +98,12 @@ final class TestFeaturesCommand extends Command
             $pestBinary,
         ];
 
-        if ($target !== null) {
-            $command[] = $target;
+        $targets = ! empty($selectedTargets)
+            ? $selectedTargets
+            : ($target !== null ? [$target] : []);
+
+        foreach ($targets as $t) {
+            $command[] = $t;
         }
 
         $command[] = '--colors=always';
@@ -108,7 +125,12 @@ final class TestFeaturesCommand extends Command
 
         $this->info("Starting Pest test run: {$runName}");
 
-        if ($target !== null) {
+        if (! empty($selectedTargets)) {
+            $this->line('<fg=gray>Selected Test Suites ('.count($selectedTargets).'):</>');
+            foreach ($selectedTargets as $st) {
+                $this->line("  <fg=gray>-</> {$st}");
+            }
+        } elseif ($target !== null) {
             $this->line("<fg=gray>Target:</> {$target}");
         }
 
@@ -204,7 +226,7 @@ final class TestFeaturesCommand extends Command
 
         $rawTokens = array_slice($argv, $cmdIndex + 1);
         $forwarded = [];
-        $internalFlags = ['--skip-clear', '--interactive', '-i', '--no-doc'];
+        $internalFlags = ['--skip-clear', '--interactive', '-i', '--no-doc', '--selected-test-suite'];
         $internalPrefixes = [
             '--pest-path=',
             '--author=',
@@ -213,6 +235,7 @@ final class TestFeaturesCommand extends Command
             '--reviewed-by=',
             '--approved-by=',
             '--acknowledged-by=',
+            '--selected-test-suite=',
         ];
 
         $target = $this->argument('target');

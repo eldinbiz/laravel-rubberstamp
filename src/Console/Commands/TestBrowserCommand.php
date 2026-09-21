@@ -19,6 +19,7 @@ final class TestBrowserCommand extends Command
      */
     protected $signature = 'rubberstamp:browser
         {target? : The test file or directory to execute (defaults to tests/Browser)}
+        {--selected-test-suite : Interactively select one or more test suites or classes to run}
         {--doctor : Run environment and Playwright health checks only}
         {--check : Alias for --doctor}
         {--skip-health-check : Skip pre-flight environment health check}
@@ -180,11 +181,22 @@ final class TestBrowserCommand extends Command
         try {
             $this->cleanupPreTestArtifacts();
 
-            $this->callSilently('config:clear');
-            $this->callSilently('view:clear');
-
             $rawTarget = $this->argument('target');
-            $target = is_string($rawTarget) && $rawTarget !== '' ? $rawTarget : 'tests/Browser';
+            $targetArg = is_string($rawTarget) && $rawTarget !== '' ? $rawTarget : null;
+            $target = $targetArg ?? 'tests/Browser';
+
+            $selectedTargets = [];
+
+            if ($this->option('selected-test-suite')) {
+                $selectedTargets = $this->promptForTestSuites('browser', $targetArg);
+
+                if (empty($selectedTargets)) {
+                    $this->warn('No test suites selected. Aborting.');
+
+                    return self::SUCCESS;
+                }
+            }
+
             $pestBinary = $this->option('pest-path')
                 ?: config('rubberstamp.pest_binary')
                 ?: $doctor->detectPestBinary();
@@ -195,6 +207,9 @@ final class TestBrowserCommand extends Command
                 return self::FAILURE;
             }
 
+            $this->callSilently('config:clear');
+            $this->callSilently('view:clear');
+
             $memoryLimit = (string) config('rubberstamp.memory_limit', '1024M');
             $forwardedArgs = $this->resolveForwardedArguments();
 
@@ -203,6 +218,8 @@ final class TestBrowserCommand extends Command
                 ? substr((string) $pestBinary, 0, -4)
                 : (string) $pestBinary;
             $pestScript = str_replace('\\', '/', realpath($pestScript) ?: $pestScript);
+
+            $targets = ! empty($selectedTargets) ? $selectedTargets : [$target];
 
             $command = array_merge(
                 [
@@ -213,7 +230,9 @@ final class TestBrowserCommand extends Command
                     '-d', 'display_startup_errors=1',
                     '-d', "auto_prepend_file={$bootstrapPath}",
                     $pestScript,
-                    $target,
+                ],
+                $targets,
+                [
                     '--colors=always',
                 ],
                 $forwardedArgs,
@@ -242,7 +261,15 @@ final class TestBrowserCommand extends Command
             );
 
             $this->info("Starting Pest Browser run: {$runName}");
-            $this->line("<fg=gray>Target:</> {$target}");
+
+            if (! empty($selectedTargets)) {
+                $this->line('<fg=gray>Selected Test Suites ('.count($selectedTargets).'):</>');
+                foreach ($selectedTargets as $st) {
+                    $this->line("  <fg=gray>-</> {$st}");
+                }
+            } else {
+                $this->line("<fg=gray>Target:</> {$target}");
+            }
             $this->newLine();
 
             $exitCode = $process->run(function (string $type, string $buffer) use ($testLogHandle): void {
@@ -341,7 +368,7 @@ final class TestBrowserCommand extends Command
 
         $rawTokens = array_slice($argv, $cmdIndex + 1);
         $forwarded = [];
-        $internalFlags = ['--doctor', '--check', '--skip-health-check', '--interactive', '-i', '--no-doc'];
+        $internalFlags = ['--doctor', '--check', '--skip-health-check', '--interactive', '-i', '--no-doc', '--selected-test-suite'];
         $internalPrefixes = [
             '--pest-path=',
             '--author=',
@@ -350,6 +377,7 @@ final class TestBrowserCommand extends Command
             '--reviewed-by=',
             '--approved-by=',
             '--acknowledged-by=',
+            '--selected-test-suite=',
         ];
 
         $target = $this->argument('target');
