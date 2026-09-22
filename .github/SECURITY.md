@@ -8,4 +8,4 @@ Only the latest major version receives security fixes.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability within Unit Tester Documenter, please send an email to Vendor Name at author@example.com. All security vulnerabilities will be promptly addressed.
+If you discover a security vulnerability within Laravel Rubberstamp, please send an email to [My Email](mailto:eldin.biz.code@gmail.com). All security vulnerabilities will be promptly addressed.

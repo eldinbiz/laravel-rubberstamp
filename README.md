@@ -252,8 +252,7 @@ Please review [our security policy](.github/SECURITY.md) on how to report securi
 
 ## Credits
 
-- [Eldin Akbar](https://github.com/eldinbiz)
-- [Laravel Team](https://github.com/laravel/laravel)
+- [Taylor Otwell and the Laravel Teams](https://github.com/laravel/laravel)
 - [Nuno Maduro](https://github.com/pestphp/pest)
 
 ## License
