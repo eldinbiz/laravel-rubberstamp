@@ -1,6 +1,6 @@
 <div align="center">
     <h1>RubberStamp</h1>
-    <p><em>Helping You, corporate slave programmer, to make Test Report your manager will blindly sign without reading.</em></p>
+    <p><em>Helping Me, corporate slave programmer, to make Test Report the manager will blindly sign without reading.</em></p>
 </div>
 
 <p align="center">
@@ -15,27 +15,27 @@
 
 ## Overview
 
-You just wrote pristine Pest tests, your CI pipeline is glowing green, and your commit history is flawless. Too bad none of that matters to your managers in the corporate world.
+I just wrote pristine Pest tests, my CI pipeline is glowing green, and my commit history is flawless. Too bad none of that matters to my managers in the corporate world.
 
-Automated test results would happily live in Git history, a Confluence page, a Microsoft Loop workspace, or a Markdown file in your repo. But as a corporate slave developer surviving in an enterprise compliance dungeon, you are required to produce **formal, printable test reports**—complete with document control numbers, SOP tracking codes, and multi-tier managerial sign-off blocks that someone will inevitably print onto paper, give hand signature, place into a binder, and never see the light again.
+Automated test results would happily live in Git history, a Confluence page, a Microsoft Loop workspace, or a Markdown file in my repo. But as a corporate slave developer surviving in an enterprise compliance dungeon, I am required to produce **formal, printable test reports**—complete with document control numbers, SOP tracking codes, and multi-tier managerial sign-off blocks that someone will inevitably print onto paper, sign by hand, place into a binder, and never see the light again.
 
-**RubberStamp** is a laravel package that exists so you never have to spend your Friday afternoon manually copy-pasting terminal output, cropping browser screenshots, and assembling the test document.
+**RubberStamp** is a Laravel package I vibe coded so that I never have to spend my Friday afternoon manually copy-pasting terminal output, cropping browser screenshots, and assembling test documents.
 
-With Artisan command, RubberStamp runs your Pest tests, flushes configuration and view caches, records audit logs, captures visual browser snapshots, and automatically compiles a **print-ready, single-file HTML test report** complete with sign-off blocks. Hand over the test report your manager will "review them" blindly and sign, feeling that they've achieved something big in project management.
+With a single Artisan command, RubberStamp runs Pest tests, flushes configuration and view caches, records audit logs, captures visual browser snapshots, and automatically compiles a **print-ready, single-file HTML test report** complete with sign-off blocks. Hand over the generated test report, my manager will blindly "review" and sign it, feeling like they've achieved something monumental in the project governance.
 
 ---
 
 ## Key Features
 
-- **Audit-Ready HTML Reports**: Generates self-contained, print-ready corporate documentation complete with Document IDs, revision codes, execution durations, and test suite breakdowns.
+- **Print-Ready HTML Reports**: Generates self-contained, print-ready corporate documentation complete with Document IDs, revision codes, execution durations, and test suite breakdowns.
 - **Customizable Reports**: Personalize report branding with your company name, corporate logo, confidentiality classification (e.g., `CONFIDENTIAL`, `INTERNAL USE ONLY`), custom Document ID prefixes, and even swap in custom Blade report templates (`report_view`) via configuration or environment variables.
-- **Formal Sign-Off Matrices**: Dynamically append structured sign-off sheets for Testers, Reviewers, Approvers, and Acknowledgers directly into the report.
-- **Zero-Configuration Browser Snapshots**: Executes Pest browser tests and automatically captures visual snapshots—embedded directly as base64 images into the standalone audit report without modifying host application test classes.
+- **Sign-Off Matrices**: Dynamically append structured sign-off sheets for Testers, Reviewers, Approvers, and Acknowledgers directly into the report.
+- **Browser Snapshots**: Executes Pest browser tests and automatically captures visual snapshots—embedded directly as base64 images into the standalone audit report without modifying host application test classes.
 - **Interactive Terminal Wizard**: Configure audit metadata, SOP references, and reviewer names on the fly before running tests using the `-i` flag.
-- **Playwright Environment Doctor**: Built-in pre-flight diagnostic check (`--doctor`) for Playwright browsers, Node dependencies, and container environments.
+- **Self-healthcheck**: Built-in diagnostic check (`--doctor`) for Playwright browsers, Node dependencies, and container environments prior to doing browser tests.
 - **Timestamped Execution Logs**: Streams real-time test runs into `doctest-reports/test-log/` or `doctest-reports/browser-test-log/` for complete auditability.
 - **Standalone Document Compiler**: Recompile reports anytime from existing test logs without re-executing suites (`php artisan rubberstamp:document`).
-- **Clean Up Your Test Results Log**: Automated artifact pruning with customizable retention periods and dry-run safety (`php artisan rubberstamp:prune`).
+- **Clean Up Your Test Results Log**: Artifact pruning with customizable retention periods and dry-run safety (`php artisan rubberstamp:prune`).
 
 ---
 
