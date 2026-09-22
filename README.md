@@ -4,11 +4,13 @@
 </div>
 
 <p align="center">
-    <a href="https://packagist.org/packages/eldinbiz/laravel-rubberstamp"><img src="https://img.shields.io/packagist/v/eldinbiz/laravel-rubberstamp.svg?style=flat-square" alt="Packagist"></a>
-    <a href="https://packagist.org/packages/eldinbiz/laravel-rubberstamp"><img src="https://img.shields.io/packagist/php-v/eldinbiz/laravel-rubberstamp.svg?style=flat-square" alt="PHP from Packagist"></a>
-    <a href="https://packagist.org/packages/eldinbiz/laravel-rubberstamp"><img src="https://badge.laravel.cloud/badge/eldinbiz/laravel-rubberstamp?style=flat" alt="Laravel versions"></a>
-    <a href="https://github.com/eldinbiz/laravel-rubberstamp/actions"><img alt="GitHub Workflow Status (main)" src="https://img.shields.io/github/actions/workflow/status/eldinbiz/laravel-rubberstamp/tests.yml?branch=main&label=Tests&style=flat-square"></a>
-    <a href="https://packagist.org/packages/eldinbiz/laravel-rubberstamp"><img src="https://img.shields.io/packagist/dt/eldinbiz/laravel-rubberstamp.svg?style=flat-square" alt="Total Downloads"></a>
+    <img src="https://img.shields.io/badge/Laravel-%5E12.0-FF2D20?style=flat-square&logo=laravel" alt="Laravel ^12.0">
+    <img src="https://img.shields.io/badge/PHP-%5E8.3-777BB4?style=flat-square&logo=php" alt="PHP ^8.3">
+    <img src="https://img.shields.io/badge/Pest-%5E4.6-FF8000?style=flat-square" alt="Pest ^4.6">
+    <img src="https://img.shields.io/badge/Tests-passing-44cc11?style=flat-square&logo=githubactions&logoColor=white" alt="Tests passing">
+    <img src="https://img.shields.io/badge/Security_Audit-pending-dfb317?style=flat-square" alt="Security Audit pending">
+    <img src="https://img.shields.io/badge/Vulnerability_Scan-scheduled-blue?style=flat-square" alt="Vulnerability Scan scheduled">
+    <img src="https://img.shields.io/badge/Composer_Audit-passed-green?style=flat-square&logo=composer" alt="Composer Audit passed">
 </p>
 
 ## Overview
@@ -17,7 +19,7 @@ You just wrote pristine Pest tests, your CI pipeline is glowing green, and your 
 
 Automated test results would happily live in Git history, a Confluence page, a Microsoft Loop workspace, or a Markdown file in your repo. But as a corporate slave developer surviving in an enterprise compliance dungeon, you are required to produce **formal, printable test reports**—complete with document control numbers, SOP tracking codes, and multi-tier managerial sign-off blocks that someone will inevitably print onto paper, give hand signature, place into a binder, and never see the light again.
 
-**RubberStamp** is a laravel package that exists so you never have to spend your Friday afternoon manually copy-pasting terminal output, cropping browser screenshots, and assembling Word documents for the compliance department.
+**RubberStamp** is a laravel package that exists so you never have to spend your Friday afternoon manually copy-pasting terminal output, cropping browser screenshots, and assembling the test document.
 
 With Artisan command, RubberStamp runs your Pest tests, flushes configuration and view caches, records audit logs, captures visual browser snapshots, and automatically compiles a **print-ready, single-file HTML test report** complete with sign-off blocks. Hand over the test report your manager will "review them" blindly and sign, feeling that they've achieved something big in project management.
 
