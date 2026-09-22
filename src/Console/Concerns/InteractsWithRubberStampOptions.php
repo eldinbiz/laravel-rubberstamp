@@ -16,6 +16,7 @@ use Illuminate\Support\Env;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
+use Symfony\Component\Console\Helper\QuestionHelper;
 
 use function Laravel\Prompts\multiselect;
 
@@ -59,6 +60,8 @@ trait InteractsWithRubberStampOptions
                 'acknowledged_by' => $cliAck,
             ];
         }
+
+        $this->disableSttyOnWindows();
 
         $this->newLine();
         $this->line('<fg=cyan;options=bold>=================================================================</>');
@@ -314,6 +317,7 @@ trait InteractsWithRubberStampOptions
         }
 
         $this->configurePrompts($this->input);
+        $this->disableSttyOnWindows();
 
         $options = [];
         $indexToTargetMap = [];
@@ -766,5 +770,15 @@ trait InteractsWithRubberStampOptions
         $finalTargets = array_merge($directories, $filteredFiles);
 
         return array_values(array_unique($finalTargets));
+    }
+
+    /**
+     * Disable stty in Symfony QuestionHelper on Windows to avoid invalid 2>/dev/null redirects.
+     */
+    protected function disableSttyOnWindows(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows' && class_exists(QuestionHelper::class)) {
+            QuestionHelper::disableStty();
+        }
     }
 }

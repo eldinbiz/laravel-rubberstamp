@@ -151,3 +151,26 @@ it('clears variables defined in environment file', function () {
 
     @unlink($tempEnv);
 });
+
+it('disables stty on Windows during interactive prompt configuration', function () {
+    $command = new class extends Command
+    {
+        use InteractsWithRubberStampOptions;
+
+        public function invokeDisableStty(): void
+        {
+            $this->disableSttyOnWindows();
+        }
+    };
+
+    $command->invokeDisableStty();
+
+    if (PHP_OS_FAMILY === 'Windows' && class_exists(\Symfony\Component\Console\Helper\QuestionHelper::class)) {
+        $reflection = new ReflectionClass(\Symfony\Component\Console\Helper\QuestionHelper::class);
+        $sttyProp = $reflection->getProperty('stty');
+        expect($sttyProp->getValue())->toBeFalse();
+    } else {
+        expect(true)->toBeTrue();
+    }
+});
+
