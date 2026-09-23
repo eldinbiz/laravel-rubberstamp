@@ -29,11 +29,7 @@ class RubberStampServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->loadRoutesFrom(__DIR__.'/../routes/rubberstamp.php');
-
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'rubberstamp');
-
-        $this->loadTranslationsFrom(__DIR__.'/../lang', 'rubberstamp');
 
         if (! $this->app->runningInConsole()) {
             return;
@@ -46,18 +42,6 @@ class RubberStampServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../resources/views' => resource_path('views/vendor/rubberstamp'),
         ], ['rubberstamp', 'rubberstamp-views']);
-
-        $this->publishes([
-            __DIR__.'/../lang' => $this->app->langPath('vendor/rubberstamp'),
-        ], ['rubberstamp', 'rubberstamp-lang']);
-
-        $this->publishes([
-            __DIR__.'/../public' => public_path('vendor/rubberstamp'),
-        ], ['rubberstamp', 'rubberstamp-assets']);
-
-        $this->publishesMigrations([
-            __DIR__.'/../database/migrations' => database_path('migrations'),
-        ], ['rubberstamp', 'rubberstamp-migrations']);
 
         $this->commands([
             RubberStampCommand::class,

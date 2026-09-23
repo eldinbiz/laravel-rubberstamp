@@ -699,7 +699,7 @@ trait InteractsWithRubberStampOptions
      *
      * @param  array<int, int|string>  $selectedKeys
      * @param  array<string, string>  $options
-     * @param  array<string, string>  $indexMap
+     * @param  array<int|string, string>  $indexMap
      * @return array<int, string>
      */
     private function resolveSelectedTargets(array $selectedKeys, array $options, array $indexMap = []): array
@@ -713,6 +713,8 @@ trait InteractsWithRubberStampOptions
 
             if (isset($indexMap[$keyStr])) {
                 $rawTargets[] = $indexMap[$keyStr];
+            } elseif (isset($indexMap[$key])) {
+                $rawTargets[] = $indexMap[$key];
             } elseif (isset($options[$keyStr])) {
                 $rawTargets[] = $keyStr;
             } elseif (is_int($key) && isset($optionKeys[$key])) {

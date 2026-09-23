@@ -6,6 +6,7 @@ use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithRubberStampOptions;
 use Illuminate\Console\Command;
 use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Artisan;
+use Symfony\Component\Console\Helper\QuestionHelper;
 
 it('registers the rubberstamp:features artisan command', function () {
     $commands = Artisan::all();
@@ -165,12 +166,11 @@ it('disables stty on Windows during interactive prompt configuration', function 
 
     $command->invokeDisableStty();
 
-    if (PHP_OS_FAMILY === 'Windows' && class_exists(\Symfony\Component\Console\Helper\QuestionHelper::class)) {
-        $reflection = new ReflectionClass(\Symfony\Component\Console\Helper\QuestionHelper::class);
+    if (PHP_OS_FAMILY === 'Windows' && class_exists(QuestionHelper::class)) {
+        $reflection = new ReflectionClass(QuestionHelper::class);
         $sttyProp = $reflection->getProperty('stty');
         expect($sttyProp->getValue())->toBeFalse();
     } else {
         expect(true)->toBeTrue();
     }
 });
-

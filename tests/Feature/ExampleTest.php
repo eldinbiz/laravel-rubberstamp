@@ -13,15 +13,13 @@ it('returns the same instance from the container', function () {
 });
 
 it('merges the package config', function () {
-    expect(config('rubberstamp.placeholder'))->toBe('default');
-});
-
-it('loads the package translations', function () {
-    expect(trans('rubberstamp::messages.placeholder'))->toBe('RubberStamp placeholder translation.');
+    expect(config('rubberstamp.results_dir'))->toBe('doctest-reports/browser-test-log')
+        ->and(config('rubberstamp.test_log_dir'))->toBe('doctest-reports/test-log');
 });
 
 it('loads the package views', function () {
-    expect(view()->exists('rubberstamp::placeholder'))->toBeTrue();
+    expect(view()->exists('rubberstamp::report'))->toBeTrue()
+        ->and(view()->exists('rubberstamp::partials.header'))->toBeTrue();
 });
 
 it('registers the artisan command', function () {
