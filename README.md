@@ -15,13 +15,13 @@
 
 ## Overview
 
-I just wrote pristine Pest tests, my CI pipeline is glowing green, and my commit history is flawless. Too bad none of that matters to my managers in the corporate world.
+In the corporate compliance dungeon, pristine Pest tests and green CI pipelines mean nothing. 
+Management demands formal, printable test reports—complete with SOP codes, document IDs, and multi-tier sign-off blocks destined to rot in a physical binder.
 
-Automated test results would happily live in Git history, a Confluence page, a Microsoft Loop workspace, or a Markdown file in my repo. But as a corporate slave developer surviving in an enterprise compliance dungeon, I am required to produce **formal, printable test reports**—complete with document control numbers, SOP tracking codes, and multi-tier managerial sign-off blocks that someone will inevitably print onto paper, sign by hand, place into a binder, and never see the light again.
+**RubberStamp** is a Laravel package I vibe-coded so that I never have to spend my Friday afternoon manually copy-pasting terminal output, cropping browser screenshots, and assembling test documents.
+With a single Artisan command, RubberStamp flushes caches, executes your Pest and browser test suites, captures visual snapshots, and compiles a print-ready single-file HTML test report.
 
-**RubberStamp** is a Laravel package I vibe coded so that I never have to spend my Friday afternoon manually copy-pasting terminal output, cropping browser screenshots, and assembling test documents.
-
-With a single Artisan command, RubberStamp runs Pest tests, flushes configuration and view caches, records audit logs, captures visual browser snapshots, and automatically compiles a **print-ready, single-file HTML test report** complete with sign-off blocks. Hand over the generated test report, my manager will blindly "review" and sign it, feeling like they've achieved something monumental in the project governance.
+Hand it over, let management blindly "review" and sign it, and get back to writing real code and building meaningful products.
 
 ---
 
@@ -73,38 +73,31 @@ php artisan rubberstamp
 
 Run Pest unit and feature tests with automatic configuration/view cache clearing, timestamped execution logging, and automated corporate HTML report generation.
 
-#### Main Command
-
 ```bash
-php artisan rubberstamp:features [target] [options]
+# View all available arguments and options
+php artisan rubberstamp:features --help
+
+# Run all feature and unit tests
+php artisan rubberstamp:features
+
+# Run a specific test file or directory
+php artisan rubberstamp:features tests/Feature/OrderProcessingTest.php
+
+# Interactively select test suites to execute
+php artisan rubberstamp:features --selected-test-suite
+
+# Launch interactive wizard to configure metadata and sign-offs
+php artisan rubberstamp:features -i
+
+# Run tests and attach corporate sign-off matrix
+php artisan rubberstamp:features \
+    --document-id="UAT-ERP" \
+    --sop="SOP-DEV-002" \
+    --author="Jane Doe" \
+    --reviewed-by="Mr Smith,QA Engineer|Taylor,QA Lead" \
+    --approved-by="Jane,Technical Lead|CTO" \
+    --acknowledged-by="Bob,Product Owner"
 ```
-
-#### Arguments & Options
-
-- **`target`** *(argument)*: Optional test file or directory path to execute. If omitted, executes all suites defined in your `phpunit.xml`.
-  - *Example*: `php artisan rubberstamp:features tests/Feature/OrderProcessingTest.php`
-- **`--selected-test-suite`**: Interactively select one or more test suites or test classes to execute using terminal checkboxes (`Laravel\Prompts\multiselect`).
-  - *Example*: `php artisan rubberstamp:features --selected-test-suite`
-- **`--document-id=`**: Custom Document ID prefix for the generated corporate audit report. (Defaults to `DOC-TEST-` or `RUBBERSTAMP_DOCUMENT_ID_PREFIX`).
-  - *Example*: `--document-id="UAT-ERP"`
-- **`--sop=`**: Associated Standard Operating Procedure (SOP) policy or RFC ticket code. (Defaults to `N/A` or `RUBBERSTAMP_SOP`).
-  - *Example*: `--sop="SOP-DEV-002"`
-- **`--author=`**: Tester or author name. (Defaults to Git configured `user.name` or `RUBBERSTAMP_AUTHOR`).
-  - *Example*: `--author="Jane Doe"`
-- **`--reviewed-by=`**: Pipe-separated list of reviewer names and roles (`Name,Role` or `Role`).
-  - *Example*: `--reviewed-by="Mr Smith,QA Engineer|Taylor,QA Lead|QA Head"`
-- **`--approved-by=`**: Pipe-separated list of approver names and roles (`Name,Role` or `Role`).
-  - *Example*: `--approved-by="Jane,Technical Lead|CTO"`
-- **`--acknowledged-by=`**: Pipe-separated list of acknowledger names and roles (`Name,Role` or `Role`).
-  - *Example*: `--acknowledged-by="Bob,Product Owner"`
-- **`-i`**, **`--interactive`**: Launch an interactive terminal wizard to configure audit metadata and sign-offs before test execution.
-  - *Example*: `php artisan rubberstamp:features -i`
-- **`--no-doc`**: Run tests and stream output to log files, but skip generating the corporate HTML documentation report.
-  - *Example*: `php artisan rubberstamp:features --no-doc`
-- **`--skip-clear`**: Skip automated pre-test cache clearing (`config:clear` and `view:clear`).
-  - *Example*: `php artisan rubberstamp:features --skip-clear`
-- **`--pest-path=`**: Custom path to the Pest test runner binary.
-  - *Example*: `--pest-path="vendor/bin/pest"`
 
 ---
 
@@ -116,40 +109,31 @@ Run Pest browser tests with Playwright environment health checks, Vite hot-reloa
 > **Zero-Configuration Browser Testing**:
 > Unlike typical browser testing setups, you **do not** need to add traits like `CapturesBrowserSnapshots` or edit `tests/TestCase.php` / `tests/Pest.php` in your host application. The `rubberstamp:browser` command automatically boots snapshot hooks and page trackers at runtime.
 
-#### Main Command
-
 ```bash
-php artisan rubberstamp:browser [target] [options]
+# View all available arguments and options
+php artisan rubberstamp:browser --help
+
+# Run all browser tests
+php artisan rubberstamp:browser
+
+# Run a specific browser test file
+php artisan rubberstamp:browser tests/Browser/LoginFlowTest.php
+
+# Interactively select browser test suites
+php artisan rubberstamp:browser --selected-test-suite
+
+# Run pre-flight Playwright and Chromium diagnostics only
+php artisan rubberstamp:browser --doctor
+
+# Launch interactive metadata wizard
+php artisan rubberstamp:browser -i
+
+# Run browser tests with custom document ID and SOP tracking
+php artisan rubberstamp:browser \
+    --document-id="UAT-BROWSER" \
+    --sop="SOP-UI-004" \
+    --approved-by="Jane,Technical Lead|CTO"
 ```
-
-#### Arguments & Options
-
-- **`target`** *(argument)*: Optional browser test file or directory path to execute. (Defaults to `tests/Browser`).
-  - *Example*: `php artisan rubberstamp:browser tests/Browser/LoginFlowTest.php`
-- **`--selected-test-suite`**: Interactively select one or more browser test classes or suites to execute using terminal checkboxes.
-  - *Example*: `php artisan rubberstamp:browser --selected-test-suite`
-- **`--doctor`**, **`--check`**: Run pre-flight Playwright environment, Node dependencies, and Chromium binary diagnostics only without running tests.
-  - *Example*: `php artisan rubberstamp:browser --doctor`
-- **`--skip-health-check`**: Skip the pre-flight environment health check and run browser tests directly.
-  - *Example*: `php artisan rubberstamp:browser --skip-health-check`
-- **`--document-id=`**: Custom Document ID prefix for the generated browser audit report. (Defaults to `DOC-TEST-` or `RUBBERSTAMP_DOCUMENT_ID_PREFIX`).
-  - *Example*: `--document-id="UAT-BROWSER"`
-- **`--sop=`**: Associated Standard Operating Procedure (SOP) policy or RFC ticket code. (Defaults to `N/A` or `RUBBERSTAMP_SOP`).
-  - *Example*: `--sop="SOP-UI-004"`
-- **`--author=`**: Tester or author name. (Defaults to Git configured `user.name` or `RUBBERSTAMP_AUTHOR`).
-  - *Example*: `--author="Jane Doe"`
-- **`--reviewed-by=`**: Pipe-separated list of reviewer names and roles (`Name,Role` or `Role`).
-  - *Example*: `--reviewed-by="Mr Smith,QA Engineer|Taylor,QA Lead"`
-- **`--approved-by=`**: Pipe-separated list of approver names and roles (`Name,Role` or `Role`).
-  - *Example*: `--approved-by="Jane,Technical Lead|CTO"`
-- **`--acknowledged-by=`**: Pipe-separated list of acknowledger names and roles (`Name,Role` or `Role`).
-  - *Example*: `--acknowledged-by="Bob,Product Owner"`
-- **`-i`**, **`--interactive`**: Launch an interactive terminal wizard to configure audit metadata and sign-offs before test execution.
-  - *Example*: `php artisan rubberstamp:browser -i`
-- **`--no-doc`**: Run browser tests but skip generating the corporate HTML documentation report.
-  - *Example*: `php artisan rubberstamp:browser --no-doc`
-- **`--pest-path=`**: Custom path to the Pest test runner binary.
-  - *Example*: `--pest-path="vendor/bin/pest"`
 
 ---
 
@@ -158,6 +142,9 @@ php artisan rubberstamp:browser [target] [options]
 Generate or re-compile corporate HTML reports from existing test logs without re-running test suites. Useful when you need to regenerate an audit report with updated SOP codes or sign-off names.
 
 ```bash
+# View all available arguments and options
+php artisan rubberstamp:document --help
+
 # Compile documentation for the latest test run
 php artisan rubberstamp:document
 
@@ -181,6 +168,9 @@ php artisan rubberstamp:document test_20260910_031304 \
 Purge obsolete test execution logs, generated corporate HTML reports, and browser visual snapshots to reclaim disk space:
 
 ```bash
+# View all available arguments and options
+php artisan rubberstamp:prune --help
+
 # Prune artifacts older than the default retention period (7 days)
 php artisan rubberstamp:prune
 
@@ -200,23 +190,6 @@ php artisan rubberstamp:prune --type=snapshots --force
 php artisan rubberstamp:prune -a
 php artisan rubberstamp:prune --all --force
 ```
-
-#### Available Pruning Options
-
-- **`-a`**, **`--all`**: Prune all test artifacts regardless of age (prompts two-step confirmation).
-  - *Example*: `php artisan rubberstamp:prune -a`
-- **`--hours=`**: Prune artifacts older than specified hours.
-  - *Example*: `--hours=24`
-- **`--days=`**: Prune artifacts older than specified days.
-  - *Example*: `--days=14`
-- **`--keep=`**: Keep the latest N test runs and prune older ones.
-  - *Example*: `--keep=5`
-- **`--type=`**: Limit pruning to a specific type (`all`, `reports`, `logs`, `snapshots`).
-  - *Example*: `--type=reports`
-- **`--dry-run`**: Simulate pruning and display matching files without deleting.
-  - *Example*: `--dry-run`
-- **`--force`**: Force deletion without confirmation prompt.
-  - *Example*: `--force`
 
 ---
 
