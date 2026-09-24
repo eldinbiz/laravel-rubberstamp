@@ -7,6 +7,7 @@ namespace Eldinbiz\RubberStamp\Console\Commands;
 use Eldinbiz\RubberStamp\Console\Concerns\InteractsWithRubberStampOptions;
 use Eldinbiz\RubberStamp\Support\AuditMetadataResolver;
 use Eldinbiz\RubberStamp\Support\BrowserEnvironmentDoctor;
+use Eldinbiz\RubberStamp\Support\BrowserProcessSanitizer;
 use Illuminate\Console\Command;
 use Symfony\Component\Process\Process;
 
@@ -23,6 +24,8 @@ final class TestBrowserCommand extends Command
         {--doctor : Run environment and Playwright health checks only}
         {--check : Alias for --doctor}
         {--skip-health-check : Skip pre-flight environment health check}
+        {--force-kill-orphans : Automatically terminate lingering Playwright processes without prompting}
+        {--skip-orphan-check : Skip checking for lingering Playwright processes}
         {--pest-path= : Custom path to Pest binary}
         {--author= : Author/tester name (defaults to git config user.name)}
         {--sop= : SOP policy or RFC ticket code (defaults to N/A)}
@@ -70,6 +73,14 @@ final class TestBrowserCommand extends Command
             $this->newLine();
         }
 
+        if (! $this->option('skip-orphan-check')) {
+            $sanitizerExitCode = $this->runProcessSanitizer();
+
+            if ($sanitizerExitCode !== self::SUCCESS) {
+                return $sanitizerExitCode;
+            }
+        }
+
         return $this->executeBrowserTests($doctor);
     }
 
@@ -114,6 +125,84 @@ final class TestBrowserCommand extends Command
         $this->info('All core browser testing dependencies are installed and operational!');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Detect and sanitize lingering Playwright processes.
+     */
+    private function runProcessSanitizer(): int
+    {
+        $appName = (string) config('app.name', 'laravel');
+        $sanitizer = new BrowserProcessSanitizer(base_path(), $appName);
+
+        $processes = $sanitizer->detectLingeringProcesses();
+
+        if (empty($processes)) {
+            return self::SUCCESS;
+        }
+
+        $this->renderProcessWarningTable($processes, $appName);
+
+        $forceKill = (bool) $this->option('force-kill-orphans');
+        $isInteractive = $this->input->isInteractive();
+
+        if ($forceKill || (! $isInteractive)) {
+            $pids = array_column($processes, 'pid');
+            $result = $sanitizer->killProcesses($pids);
+            $sanitizer->cleanStaleTempFiles();
+
+            $this->info("Automatically cleaned up {$result['killed']} lingering process(es).");
+            $this->newLine();
+
+            return self::SUCCESS;
+        }
+
+        $confirmed = $this->confirm('Terminate lingering process(es) and continue testing?', true);
+
+        if (! $confirmed) {
+            $this->newLine();
+            $this->warn('Browser testing aborted by user. Please resolve lingering processes before running rubberstamp:browser.');
+
+            return self::FAILURE;
+        }
+
+        $pids = array_column($processes, 'pid');
+        $result = $sanitizer->killProcesses($pids);
+        $sanitizer->cleanStaleTempFiles();
+
+        $this->info("Cleaned up {$result['killed']} lingering process(es). Proceeding with browser tests...");
+        $this->newLine();
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Render ASCII table for detected lingering processes.
+     *
+     * @param  array<int, array{pid: int, name: string, port: ?int, scope: string, command: string}>  $processes
+     */
+    private function renderProcessWarningTable(array $processes, string $appName): void
+    {
+        $this->newLine();
+        $this->line("<fg=yellow;options=bold>! [WARNING] Lingering Playwright browser test processes detected for [{$appName}].</>");
+        $this->line('<fg=gray>These processes hold port/socket locks from a previous run and will cause Pest to hang indefinitely.</>');
+        $this->newLine();
+
+        $headers = ['PID', 'Process Name', 'Port', 'Repository / Scope', 'Command Line'];
+        $rows = [];
+
+        foreach ($processes as $proc) {
+            $rows[] = [
+                $proc['pid'],
+                $proc['name'],
+                $proc['port'] !== null ? (string) $proc['port'] : '-',
+                $proc['scope'],
+                $proc['command'],
+            ];
+        }
+
+        $this->table($headers, $rows);
+        $this->newLine();
     }
 
     /**
@@ -220,6 +309,7 @@ final class TestBrowserCommand extends Command
             $pestScript = str_replace('\\', '/', realpath($pestScript) ?: $pestScript);
 
             $targets = ! empty($selectedTargets) ? $selectedTargets : [$target];
+            $appName = (string) config('app.name', 'laravel');
 
             $command = array_merge(
                 [
@@ -228,6 +318,7 @@ final class TestBrowserCommand extends Command
                     '-d', 'output_buffering=0',
                     '-d', 'display_errors=1',
                     '-d', 'display_startup_errors=1',
+                    '-d', "rubberstamp.tag=[{$appName}][rubberstamp]-browser-test",
                     '-d', "auto_prepend_file={$bootstrapPath}",
                     $pestScript,
                 ],
@@ -368,7 +459,7 @@ final class TestBrowserCommand extends Command
 
         $rawTokens = array_slice($argv, $cmdIndex + 1);
         $forwarded = [];
-        $internalFlags = ['--doctor', '--check', '--skip-health-check', '--interactive', '-i', '--no-doc', '--selected-test-suite'];
+        $internalFlags = ['--doctor', '--check', '--skip-health-check', '--interactive', '-i', '--no-doc', '--selected-test-suite', '--force-kill-orphans', '--skip-orphan-check'];
         $internalPrefixes = [
             '--pest-path=',
             '--author=',

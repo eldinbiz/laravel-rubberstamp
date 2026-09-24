@@ -26,6 +26,8 @@ it('has the expected command description and options', function () {
         ->and($command->getDefinition()->hasOption('doctor'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('check'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('skip-health-check'))->toBeTrue()
+        ->and($command->getDefinition()->hasOption('force-kill-orphans'))->toBeTrue()
+        ->and($command->getDefinition()->hasOption('skip-orphan-check'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('selected-test-suite'))->toBeTrue()
         ->and($command->getDefinition()->hasArgument('target'))->toBeTrue();
 });
@@ -119,4 +121,15 @@ it('resolves browser-test-bootstrap.php file and registers hooks idempotently', 
     // Second call should be a no-op / idempotent
     BrowserSnapshotManager::registerPestHooks();
     expect(BrowserSnapshotManager::$pestHooksRegistered)->toBeTrue();
+});
+
+it('accepts --skip-orphan-check and --force-kill-orphans flags during execution', function () {
+    $this->artisan('rubberstamp:browser', [
+        'target' => 'tests/Browser/NonExistentTest.php',
+        '--skip-health-check' => true,
+        '--skip-orphan-check' => true,
+        '--force-kill-orphans' => true,
+        '--pest-path' => '/nonexistent/path/to/pest',
+    ])
+        ->assertExitCode(1);
 });

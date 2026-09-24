@@ -67,9 +67,11 @@ Always use the canonical `rubberstamp:*` commands:
    php artisan rubberstamp:browser [target] [options]
    ```
    - **Zero-Configuration**: Does not require adding traits or modifying `tests/TestCase.php`—hooks boot automatically at runtime.
-   - Pre-flight diagnostic check: `--doctor` (or `--check`) verifies Playwright, Node, and Chromium binaries.
+   - **Pre-Flight Environment Doctor**: `--doctor` (or `--check`) verifies Playwright, Node, and Chromium binaries. Skip during repeated test runs with `--skip-health-check`.
+   - **Pre-Flight Socket & Process Sanitizer**: Automatically detects lingering `node.exe` or `chromium.exe` child processes and stale socket locks from prior runs. Displays an ASCII process table and prompts the developer to terminate them before deadlocking.
+   - `--force-kill-orphans`: Automatically terminate lingering Playwright processes without interactive confirmation (recommended for CI/CD pipelines).
+   - `--skip-orphan-check`: Skip checking for lingering Playwright processes.
    - `--selected-test-suite`: Interactively select one or more browser test classes or suites using terminal checkboxes.
-   - `--skip-health-check`: Skip pre-flight doctor checks for faster repeated runs.
    - Captures isolated per-test visual snapshots into `doctest-reports/browser-test-log/<run>/<Suite>/<slug>.png`.
    - Embeds visual evidence as base64 images directly into the standalone HTML report (`doctest-reports/browser_test_<timestamp>.html`).
    - Accepts all metadata and sign-off flags (`--document-id`, `--sop`, `--author`, `--reviewed-by`, `--approved-by`, `--acknowledged-by`, `-i`, `--no-doc`).
@@ -155,6 +157,15 @@ php artisan rubberstamp:browser tests/Browser/OrderFlowTest.php \
     --sop="SOP-UI-002"
 ```
 
+### Run Browser Tests in CI with Automatic Process Cleanup
+```bash
+php artisan rubberstamp:browser \
+    --force-kill-orphans \
+    --document-id="CI-UAT" \
+    --sop="SOP-QA-001" \
+    --approved-by="CI Runner,Automation Lead"
+```
+
 ### Re-Compile Report with Updated Approvers Without Re-Running Tests
 ```bash
 php artisan rubberstamp:document test_20260918_100000 \
@@ -177,3 +188,4 @@ php artisan rubberstamp:prune --hours=48 --type=snapshots --force
 - **Re-Running Test Suites to Update Signers or Metadata**: Do NOT re-execute full test suites solely to update SOP numbers or signer names. Use `rubberstamp:document [run]` with new options.
 - **Manually Deleting Log / Snapshot Folders**: Do NOT delete files directly from `doctest-reports/` using filesystem tools. Use `rubberstamp:prune` to ensure paired logs, snapshots, and reports are cleaned up safely.
 - **Using Interactive Flag (`-i`) in CI/Automated Pipelines**: Do NOT pass `-i` or `--interactive` in CI scripts or automated AI workflows; supply explicit CLI flags (`--document-id`, `--sop`, `--approved-by`) instead.
+- **Allowing Orphaned Playwright Sockets to Stall CI Pipelines**: Do NOT let prior hung test runs or orphaned background processes cause infinite socket deadlocks in CI; pass `--force-kill-orphans` in automated scripts to ensure a clean environment before testing.
