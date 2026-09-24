@@ -1,4 +1,5 @@
 <div align="center">
+    <img src="arts/logo.png" alt="RubberStamp" width="600">
     <h1>RubberStamp</h1>
     <p><em>Helping Me, corporate slave programmer, to make Test Report the manager will blindly sign without reading.</em></p>
 </div>
