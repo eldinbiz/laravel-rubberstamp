@@ -33,16 +33,57 @@ if (! function_exists('visit')) {
 // 2. Ensure Collision printer environment is set before autoloader runs
 $_SERVER['COLLISION_PRINTER'] = 'DefaultPrinter';
 
-// 3. Load Composer autoloader
+// 3. Ensure testing environment defaults are populated
+foreach ([
+    'APP_ENV' => 'testing',
+    'DB_CONNECTION' => 'sqlite',
+    'DB_DATABASE' => ':memory:',
+    'CACHE_STORE' => 'array',
+    'SESSION_DRIVER' => 'array',
+    'QUEUE_CONNECTION' => 'sync',
+    'MAIL_MAILER' => 'array',
+] as $key => $value) {
+    if (getenv($key) === false || getenv($key) === '') {
+        putenv("{$key}={$value}");
+        $_ENV[$key] = $value;
+        $_SERVER[$key] = $value;
+    }
+}
+
+// 4. Load Composer autoloader
 $autoloadPath = getcwd().DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'autoload.php';
 
 if (file_exists($autoloadPath)) {
     require_once $autoloadPath;
 }
 
-// 3. Queue the afterEach snapshot hook into Pest's Plugin::$callables
+// 5. Enable HTTP method parameter override & eager configuration bootstrap for Pest discovery
+if (class_exists(\Illuminate\Http\Request::class)) {
+    \Illuminate\Http\Request::enableHttpMethodParameterOverride();
+}
+
+$appBootstrap = getcwd().DIRECTORY_SEPARATOR.'bootstrap'.DIRECTORY_SEPARATOR.'app.php';
+
+if (file_exists($appBootstrap)) {
+    try {
+        if (! function_exists('app') || ! app()->bound('config')) {
+            /** @var \Illuminate\Foundation\Application $app */
+            $app = require $appBootstrap;
+            $app->bootstrapWith([
+                \Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables::class,
+                \Illuminate\Foundation\Bootstrap\LoadConfiguration::class,
+            ]);
+            $app->instance('request', \Illuminate\Http\Request::create('/'));
+        }
+    } catch (\Throwable) {
+        // Graceful fallback if application bootstrap is deferred
+    }
+}
+
+// 6. Queue the afterEach snapshot hook into Pest's Plugin::$callables
 if (class_exists(Plugin::class)) {
     Plugin::$callables[] = static function (): void {
         BrowserSnapshotManager::registerPestHooks();
     };
 }
+

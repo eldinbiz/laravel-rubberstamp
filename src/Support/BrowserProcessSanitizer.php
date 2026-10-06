@@ -128,6 +128,14 @@ final class BrowserProcessSanitizer
                     'scope' => "Child of Node PID {$proc['ppid']}",
                     'command' => $this->truncateCommand($cmd),
                 ];
+            } elseif ($isHeadlessTestBrowser && str_contains($cmdLower, '--remote-debugging-pipe')) {
+                $detectedChromiumProcesses[$proc['pid']] = [
+                    'pid' => $proc['pid'],
+                    'name' => $proc['name'],
+                    'port' => null,
+                    'scope' => 'Orphaned Test Browser',
+                    'command' => $this->truncateCommand($cmd),
+                ];
             }
         }
 
@@ -169,6 +177,11 @@ final class BrowserProcessSanitizer
             }
         }
 
+        if (PHP_OS_FAMILY === 'Windows' && $killed > 0) {
+            // Give Windows OS kernel time to release socket TIME_WAIT and named pipe handles
+            usleep(1_500_000);
+        }
+
         return [
             'killed' => $killed,
             'failed' => $failed,
@@ -206,10 +219,22 @@ final class BrowserProcessSanitizer
      */
     public function cleanStaleTempFiles(): void
     {
-        $tempFile = $this->basePath.DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'pestphp'.DIRECTORY_SEPARATOR.'pest-plugin-browser'.DIRECTORY_SEPARATOR.'.temp'.DIRECTORY_SEPARATOR.'playwright-server.json';
+        $tempDir = $this->basePath.DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'pestphp'.DIRECTORY_SEPARATOR.'pest-plugin-browser'.DIRECTORY_SEPARATOR.'.temp';
+        $tempFile = $tempDir.DIRECTORY_SEPARATOR.'playwright-server.json';
 
         if (file_exists($tempFile)) {
             @unlink($tempFile);
+        }
+
+        if (is_dir($tempDir)) {
+            $files = @glob($tempDir.DIRECTORY_SEPARATOR.'*');
+            if (is_array($files)) {
+                foreach ($files as $file) {
+                    if (is_file($file)) {
+                        @unlink($file);
+                    }
+                }
+            }
         }
     }
 
@@ -242,8 +267,33 @@ final class BrowserProcessSanitizer
     {
         $recordedPort = $this->getRecordedPort();
         $sockets = $this->fetchWindowsListeningSockets();
-        $runningProcesses = $this->fetchWindowsProcesses();
 
+        $listeningPids = [];
+        if ($recordedPort !== null) {
+            foreach ($sockets as $s) {
+                if ($s['port'] === $recordedPort) {
+                    $listeningPids[] = $s['pid'];
+                }
+            }
+        }
+
+        $detected = [];
+        $seenPids = [];
+
+        // 1. High-fidelity CIM/PowerShell process discovery with CommandLine & ParentProcessId
+        $cimProcesses = $this->fetchWindowsProcessesViaCim();
+
+        if (! empty($cimProcesses)) {
+            $filtered = $this->filterLingeringProcesses($cimProcesses, $recordedPort, $listeningPids);
+
+            foreach ($filtered as $proc) {
+                $seenPids[] = $proc['pid'];
+                $detected[] = $proc;
+            }
+        }
+
+        // 2. Socket-based fallback / supplementary detection via tasklist & netstat
+        $runningProcesses = $this->fetchWindowsProcesses();
         $procMap = [];
         foreach ($runningProcesses as $proc) {
             $procMap[$proc['pid']] = $proc['name'];
@@ -260,9 +310,13 @@ final class BrowserProcessSanitizer
             }
         }
 
-        $detected = [];
-        $seenPids = [];
+        // Map all listening ports by PID
+        $pidPorts = [];
+        foreach ($sockets as $sock) {
+            $pidPorts[$sock['pid']][] = $sock['port'];
+        }
 
+        // 2a. Sockets on recorded port or dynamic test ports (>= 50000)
         foreach ($sockets as $sock) {
             $pid = $sock['pid'];
             $port = $sock['port'];
@@ -300,6 +354,60 @@ final class BrowserProcessSanitizer
                     'scope' => $scope,
                     'command' => "{$name} listening on port {$port}",
                 ];
+            }
+        }
+
+        // 2b. Zero-PowerShell fallback: Unattached or orphaned test processes from tasklist
+        if (empty($cimProcesses)) {
+            foreach ($runningProcesses as $proc) {
+                $pid = $proc['pid'];
+                if (in_array($pid, $seenPids, true)) {
+                    continue;
+                }
+
+                $name = $proc['name'];
+                $nameLower = strtolower($name);
+
+                $isNode = str_contains($nameLower, 'node');
+                $isChromium = str_contains($nameLower, 'chromium') || str_contains($nameLower, 'chrome');
+
+                if (! ($isNode || $isChromium)) {
+                    continue;
+                }
+
+                // Never kill processes listening on protected ports (e.g. Vite on 5173)
+                $ports = $pidPorts[$pid] ?? [];
+                $hasProtectedPort = array_any($ports, fn (int $p): bool => in_array($p, $ignoredPorts, true) || ($p < 50000 && $p !== $recordedPort));
+
+                if ($hasProtectedPort) {
+                    continue;
+                }
+
+                // Chromium on a test machine is always an orphaned test browser
+                if ($isChromium) {
+                    $seenPids[] = $pid;
+                    $detected[] = [
+                        'pid' => $pid,
+                        'name' => $name,
+                        'port' => null,
+                        'scope' => 'Orphaned Test Browser',
+                        'command' => "{$name} (unattached test browser)",
+                    ];
+
+                    continue;
+                }
+
+                // Node.exe with no open listening ports (zombie child workers left by Playwright)
+                if ($isNode && empty($ports)) {
+                    $seenPids[] = $pid;
+                    $detected[] = [
+                        'pid' => $pid,
+                        'name' => $name,
+                        'port' => null,
+                        'scope' => ($this->appName ?: basename($this->basePath)).' (orphaned node worker)',
+                        'command' => "{$name} (unattached test worker)",
+                    ];
+                }
             }
         }
 
@@ -514,5 +622,75 @@ final class BrowserProcessSanitizer
         }
 
         return substr($cleaned, 0, $maxLength - 3).'...';
+    }
+
+    /**
+     * Query Windows processes with full CommandLine and ParentProcessId via CIM/PowerShell.
+     *
+     * @return array<int, array{pid: int, ppid: int, name: string, command: string}>
+     */
+    private function fetchWindowsProcessesViaCim(): array
+    {
+        $script = 'Get-CimInstance Win32_Process | Where-Object { $_.Name -in @(\'node.exe\',\'chromium.exe\',\'chrome.exe\') } | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress';
+        $encodedCommand = base64_encode(mb_convert_encoding($script, 'UTF-16LE', 'UTF-8'));
+
+        $process = new Process([
+            'powershell',
+            '-NoProfile',
+            '-ExecutionPolicy', 'Bypass',
+            '-EncodedCommand',
+            $encodedCommand,
+        ]);
+        $process->setTimeout(10);
+
+        try {
+            $process->run();
+
+            if (! $process->isSuccessful()) {
+                return [];
+            }
+
+            $output = trim($process->getOutput());
+
+            if ($output === '' || $output === 'null') {
+                return [];
+            }
+
+            $data = json_decode($output, true);
+
+            if (! is_array($data)) {
+                return [];
+            }
+
+            if (isset($data['ProcessId'])) {
+                $data = [$data];
+            }
+
+            $results = [];
+
+            foreach ($data as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                $pid = (int) ($item['ProcessId'] ?? 0);
+                $ppid = (int) ($item['ParentProcessId'] ?? 0);
+                $name = (string) ($item['Name'] ?? '');
+                $command = (string) ($item['CommandLine'] ?? $name);
+
+                if ($pid > 0) {
+                    $results[] = [
+                        'pid' => $pid,
+                        'ppid' => $ppid,
+                        'name' => $name,
+                        'command' => $command,
+                    ];
+                }
+            }
+
+            return $results;
+        } catch (Throwable) {
+            return [];
+        }
     }
 }

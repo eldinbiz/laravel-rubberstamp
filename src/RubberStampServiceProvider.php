@@ -31,6 +31,12 @@ class RubberStampServiceProvider extends ServiceProvider
     {
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'rubberstamp');
 
+        if ($this->app->environment('testing')) {
+            /** @var \Illuminate\Routing\Router $router */
+            $router = $this->app->make('router');
+            $router->prependMiddlewareToGroup('web', \Eldinbiz\RubberStamp\Http\Middleware\RubberStampBrowserMiddleware::class);
+        }
+
         if (! $this->app->runningInConsole()) {
             return;
         }

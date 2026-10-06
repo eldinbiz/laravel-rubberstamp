@@ -138,6 +138,8 @@ final class TestBrowserCommand extends Command
         $processes = $sanitizer->detectLingeringProcesses();
 
         if (empty($processes)) {
+            $sanitizer->cleanStaleTempFiles();
+
             return self::SUCCESS;
         }
 
@@ -150,6 +152,8 @@ final class TestBrowserCommand extends Command
             $pids = array_column($processes, 'pid');
             $result = $sanitizer->killProcesses($pids);
             $sanitizer->cleanStaleTempFiles();
+
+            usleep(500_000);
 
             $this->info("Automatically cleaned up {$result['killed']} lingering process(es).");
             $this->newLine();
@@ -169,6 +173,8 @@ final class TestBrowserCommand extends Command
         $pids = array_column($processes, 'pid');
         $result = $sanitizer->killProcesses($pids);
         $sanitizer->cleanStaleTempFiles();
+
+        usleep(500_000);
 
         $this->info("Cleaned up {$result['killed']} lingering process(es). Proceeding with browser tests...");
         $this->newLine();
@@ -414,6 +420,16 @@ final class TestBrowserCommand extends Command
             return self::SUCCESS;
         } finally {
             $restoreHot();
+            try {
+                $sanitizer = new BrowserProcessSanitizer(base_path(), (string) config('app.name', 'laravel'));
+                $sanitizer->cleanStaleTempFiles();
+                $lingering = $sanitizer->detectLingeringProcesses();
+                if (! empty($lingering)) {
+                    $sanitizer->killProcesses(array_column($lingering, 'pid'));
+                }
+            } catch (\Throwable) {
+                // Suppress cleanup errors to avoid masking test exit status or exceptions
+            }
         }
     }
 
@@ -422,6 +438,9 @@ final class TestBrowserCommand extends Command
      */
     private function cleanupPreTestArtifacts(): void
     {
+        $sanitizer = new BrowserProcessSanitizer(base_path(), (string) config('app.name', 'laravel'));
+        $sanitizer->cleanStaleTempFiles();
+
         $tempDir = base_path('vendor'.DIRECTORY_SEPARATOR.'pestphp'.DIRECTORY_SEPARATOR.'pest-plugin-browser'.DIRECTORY_SEPARATOR.'.temp');
 
         if (is_dir($tempDir)) {
