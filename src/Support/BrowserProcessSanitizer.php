@@ -316,7 +316,7 @@ final class BrowserProcessSanitizer
             $pidPorts[$sock['pid']][] = $sock['port'];
         }
 
-        // 2a. Sockets on recorded port or dynamic test ports (>= 50000)
+        // 2a. Sockets on recorded port or dynamic test ports (>= 49152)
         foreach ($sockets as $sock) {
             $pid = $sock['pid'];
             $port = $sock['port'];
@@ -339,7 +339,7 @@ final class BrowserProcessSanitizer
             }
 
             $isRecordedPort = $recordedPort !== null && $port === $recordedPort;
-            $isDynamicTestPort = $port >= 50000 && ! in_array($port, $ignoredPorts, true);
+            $isDynamicTestPort = $port >= 49152 && ! in_array($port, $ignoredPorts, true);
 
             if ($isRecordedPort || $isDynamicTestPort) {
                 $seenPids[] = $pid;
@@ -357,57 +357,56 @@ final class BrowserProcessSanitizer
             }
         }
 
-        // 2b. Zero-PowerShell fallback: Unattached or orphaned test processes from tasklist
-        if (empty($cimProcesses)) {
-            foreach ($runningProcesses as $proc) {
-                $pid = $proc['pid'];
-                if (in_array($pid, $seenPids, true)) {
-                    continue;
-                }
+        // 2b. Supplementary sweep: Unattached or orphaned test processes from tasklist
+        // Always run alongside CIM to catch detached Node child workers and Chromium processes that escaped parent-tree filtering
+        foreach ($runningProcesses as $proc) {
+            $pid = $proc['pid'];
+            if (in_array($pid, $seenPids, true)) {
+                continue;
+            }
 
-                $name = $proc['name'];
-                $nameLower = strtolower($name);
+            $name = $proc['name'];
+            $nameLower = strtolower($name);
 
-                $isNode = str_contains($nameLower, 'node');
-                $isChromium = str_contains($nameLower, 'chromium') || str_contains($nameLower, 'chrome');
+            $isNode = str_contains($nameLower, 'node');
+            $isChromium = str_contains($nameLower, 'chromium');
 
-                if (! ($isNode || $isChromium)) {
-                    continue;
-                }
+            if (! ($isNode || $isChromium)) {
+                continue;
+            }
 
-                // Never kill processes listening on protected ports (e.g. Vite on 5173)
-                $ports = $pidPorts[$pid] ?? [];
-                $hasProtectedPort = array_any($ports, fn (int $p): bool => in_array($p, $ignoredPorts, true) || ($p < 50000 && $p !== $recordedPort));
+            // Never kill processes listening on protected ports (e.g. Vite on 5173)
+            $ports = $pidPorts[$pid] ?? [];
+            $hasProtectedPort = array_any($ports, fn (int $p): bool => in_array($p, $ignoredPorts, true) || ($p < 49152 && $p !== $recordedPort));
 
-                if ($hasProtectedPort) {
-                    continue;
-                }
+            if ($hasProtectedPort) {
+                continue;
+            }
 
-                // Chromium on a test machine is always an orphaned test browser
-                if ($isChromium) {
-                    $seenPids[] = $pid;
-                    $detected[] = [
-                        'pid' => $pid,
-                        'name' => $name,
-                        'port' => null,
-                        'scope' => 'Orphaned Test Browser',
-                        'command' => "{$name} (unattached test browser)",
-                    ];
+            // Chromium on a test machine is always an orphaned test browser
+            if ($isChromium) {
+                $seenPids[] = $pid;
+                $detected[] = [
+                    'pid' => $pid,
+                    'name' => $name,
+                    'port' => null,
+                    'scope' => 'Orphaned Test Browser',
+                    'command' => "{$name} (unattached test browser)",
+                ];
 
-                    continue;
-                }
+                continue;
+            }
 
-                // Node.exe with no open listening ports (zombie child workers left by Playwright)
-                if ($isNode && empty($ports)) {
-                    $seenPids[] = $pid;
-                    $detected[] = [
-                        'pid' => $pid,
-                        'name' => $name,
-                        'port' => null,
-                        'scope' => ($this->appName ?: basename($this->basePath)).' (orphaned node worker)',
-                        'command' => "{$name} (unattached test worker)",
-                    ];
-                }
+            // Node.exe with no open listening ports (zombie child workers left by Playwright)
+            if ($isNode && empty($ports)) {
+                $seenPids[] = $pid;
+                $detected[] = [
+                    'pid' => $pid,
+                    'name' => $name,
+                    'port' => null,
+                    'scope' => ($this->appName ?: basename($this->basePath)).' (orphaned node worker)',
+                    'command' => "{$name} (unattached test worker)",
+                ];
             }
         }
 

@@ -422,11 +422,11 @@ final class TestBrowserCommand extends Command
             $restoreHot();
             try {
                 $sanitizer = new BrowserProcessSanitizer(base_path(), (string) config('app.name', 'laravel'));
-                $sanitizer->cleanStaleTempFiles();
                 $lingering = $sanitizer->detectLingeringProcesses();
                 if (! empty($lingering)) {
                     $sanitizer->killProcesses(array_column($lingering, 'pid'));
                 }
+                $sanitizer->cleanStaleTempFiles();
             } catch (\Throwable) {
                 // Suppress cleanup errors to avoid masking test exit status or exceptions
             }

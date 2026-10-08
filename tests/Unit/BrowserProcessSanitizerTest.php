@@ -142,3 +142,44 @@ it('detects relative node_modules command line and extracts CLI port', function 
         ->and($filtered[0]['port'])->toBe(54932)
         ->and($filtered[0]['scope'])->toBe('scaffolding-app-laravel (local)');
 });
+
+it('identifies unattached orphaned chromium and node test processes', function () {
+    $sanitizer = new BrowserProcessSanitizer('C:\\projects\\scaffolding-app-laravel', 'scaffolding-app-laravel');
+
+    $mockProcesses = [
+        [
+            'pid' => 6001,
+            'ppid' => 1,
+            'name' => 'chromium.exe',
+            'command' => 'chromium.exe --headless --remote-debugging-pipe',
+        ],
+    ];
+
+    $filtered = $sanitizer->filterLingeringProcesses($mockProcesses);
+
+    expect($filtered)->toHaveCount(1)
+        ->and($filtered[0]['pid'])->toBe(6001)
+        ->and($filtered[0]['name'])->toBe('chromium.exe')
+        ->and($filtered[0]['scope'])->toBe('Orphaned Test Browser');
+});
+
+it('identifies playwright servers listening on Windows ephemeral port range (49152-49999)', function () {
+    $sanitizer = new BrowserProcessSanitizer('C:\\projects\\scaffolding-app-laravel', 'scaffolding-app-laravel');
+
+    $mockProcesses = [
+        [
+            'pid' => 7001,
+            'ppid' => 10,
+            'name' => 'node.exe',
+            'command' => 'node node_modules/playwright-core/cli.js run-server --port 49500',
+        ],
+    ];
+
+    $filtered = $sanitizer->filterLingeringProcesses($mockProcesses, 49500, [7001]);
+
+    expect($filtered)->toHaveCount(1)
+        ->and($filtered[0]['pid'])->toBe(7001)
+        ->and($filtered[0]['port'])->toBe(49500);
+});
+
+
