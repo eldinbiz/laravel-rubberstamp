@@ -181,8 +181,29 @@ php artisan rubberstamp:prune --days=14 --dry-run
 php artisan rubberstamp:prune --hours=48 --type=snapshots --force
 ```
 
+## Writing Flake-Free Browser Tests with Playwright & RubberStamp
+
+To maximize test reliability and prevent intermittent browser test failures under Microsoft Playwright and headless Chromium:
+
+1. **Assert Deterministic Invariants Instead of Transient Flash Messages**:
+   - In headless browsers running with `SESSION_DRIVER=array`, HTTP 302 redirects back to a form (e.g. controller validation errors) drop ephemeral session flash messages before Playwright assertions run.
+   - Never assert transient flash messages like `assertSee('The email has already been taken.')` across redirects.
+   - Instead, assert deterministic invariants:
+     - Route path: `$page->assertPathIs('/users/create')`
+     - Form context heading: `$page->assertSee('Create New User')`
+     - Database state invariant: `expect(User::where('name', 'Attempted User')->exists())->toBeFalse()`
+2. **Account for Reactive Debounce & Modal Transitions**:
+   - When typing into debounced live search filters or Alpine type-to-confirm modal inputs, allow reactive microtasks and Livewire network roundtrips to settle (`->wait(0.5)` or `->waitForText(...)`) before asserting filtered DOM updates or clicking confirmation buttons.
+3. **Use Scoped `data-testid` Attributes**:
+   - Playwright enforces strict mode locators. Generic text queries (`click('Delete')`) fail when multiple rows or modals appear. Always assign `data-testid="..."` to interactive elements and target them using Pest's `@` prefix shorthand (e.g., `->click('@confirm-delete-btn')`).
+4. **Playwright Auto-Waiting (No Dusk `waitFor`)**:
+   - Playwright action methods (`click()`, `type()`, `fill()`) auto-wait for element visibility and actionability. Never call `->waitFor($selector)` (Dusk syntax), which triggers a fatal method not found error.
+
 ## Anti-Patterns
 
+- **Checking Session Flash Strings Across Redirects**: Do NOT assert transient session flash message strings across HTTP 302 redirects (such as non-Livewire validation errors) under headless Chromium with array session drivers; assert the destination route path (`assertPathIs(...)`), form context presence (`assertSee(...)`), and database state invariants (`expect(...->exists())->toBeFalse()`).
+- **Ignoring Livewire Reactivity Settling**: Do NOT immediately click confirmation buttons or assert DOM changes after typing into debounced search inputs or type-to-confirm modal inputs; allow microtasks and Livewire roundtrips to settle using `wait(0.5)` or `waitForText(...)`.
+- **Using Generic Locators in Multi-Item Views**: Do NOT query generic text (`click('Delete')`) or class names that match multiple elements; attach `data-testid="..."` to interactive Blade templates and query with Pest's `@` prefix shorthand.
 - **Modifying `tests/TestCase.php` or `tests/Pest.php` for Browser Snapshots**: Do NOT manually add traits (like `CapturesBrowserSnapshots`) or register hooks in application test bases. `rubberstamp:browser` automatically injects hooks and page watchers at runtime.
 - **Running Bare `pest` for Compliance Audits**: Do NOT run `vendor/bin/pest` directly when audit-ready HTML reports, sign-off blocks, or timestamped test logs are required for compliance or QA review. Use `rubberstamp:features` or `rubberstamp:browser`.
 - **Re-Running Test Suites to Update Signers or Metadata**: Do NOT re-execute full test suites solely to update SOP numbers or signer names. Use `rubberstamp:document [run]` with new options.
