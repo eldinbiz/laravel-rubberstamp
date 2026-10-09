@@ -181,5 +181,3 @@ it('identifies playwright servers listening on Windows ephemeral port range (491
         ->and($filtered[0]['pid'])->toBe(7001)
         ->and($filtered[0]['port'])->toBe(49500);
 });
-
-

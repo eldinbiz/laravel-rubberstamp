@@ -1,5 +1,17 @@
 # Release Notes
 
+## [v0.2.4](https://github.com/eldinbiz/laravel-rubberstamp/compare/v0.2.3...v0.2.4) - 2026-10-09
+
+### Added
+- **Laravel Boost-Style CLI Header**: Added `RendersHeader` concern to render a high-resolution block ASCII logo with an ANSI 256 gradient (`RUBBER` in cyan-to-blue, `STAMP` in teal-to-emerald), a high-contrast badge pill, and bullet arrow indicators (`▸`) for available commands.
+- **Automated Fallback**: Gracefully handles non-ANSI and redirected output (`--no-ansi`, `isDecorated()`) without raw escape sequence artifacts.
+- **Feature Test Coverage**: Added `RubberStampCommandTest` verifying header rendering, badge text, available commands index, and clean `--no-ansi` execution.
+
+### Fixed
+- **Test Suite Host Isolation**: Added `--skip-orphan-check` to interactive browser command feature tests in `TestBrowserCommandTest`, preventing test flakes caused by active background processes on the developer machine.
+- **PHPStan Static Analysis**: Resolved `booleanAnd.leftAlwaysTrue` static analysis error on line 404 of `BrowserProcessSanitizer` by eliminating redundant `$isNode` check following prior guard clauses.
+- **Command Description Accuracy**: Updated `RubberStampCommand` description to accurately identify the package as an automated test report generator.
+
 ## [v0.2.3](https://github.com/eldinbiz/laravel-rubberstamp/compare/v0.2.2...v0.2.3) - 2026-10-09
 
 ### Fixed

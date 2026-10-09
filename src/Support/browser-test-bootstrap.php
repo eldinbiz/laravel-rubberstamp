@@ -3,6 +3,10 @@
 declare(strict_types=1);
 
 use Eldinbiz\RubberStamp\Support\BrowserSnapshotManager;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Bootstrap\LoadConfiguration;
+use Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables;
+use Illuminate\Http\Request;
 use Pest\Plugin;
 
 require_once __DIR__.'/BrowserSnapshotManager.php';
@@ -58,8 +62,8 @@ if (file_exists($autoloadPath)) {
 }
 
 // 5. Enable HTTP method parameter override & eager configuration bootstrap for Pest discovery
-if (class_exists(\Illuminate\Http\Request::class)) {
-    \Illuminate\Http\Request::enableHttpMethodParameterOverride();
+if (class_exists(Request::class)) {
+    Request::enableHttpMethodParameterOverride();
 }
 
 $appBootstrap = getcwd().DIRECTORY_SEPARATOR.'bootstrap'.DIRECTORY_SEPARATOR.'app.php';
@@ -67,15 +71,15 @@ $appBootstrap = getcwd().DIRECTORY_SEPARATOR.'bootstrap'.DIRECTORY_SEPARATOR.'ap
 if (file_exists($appBootstrap)) {
     try {
         if (! function_exists('app') || ! app()->bound('config')) {
-            /** @var \Illuminate\Foundation\Application $app */
+            /** @var Application $app */
             $app = require $appBootstrap;
             $app->bootstrapWith([
-                \Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables::class,
-                \Illuminate\Foundation\Bootstrap\LoadConfiguration::class,
+                LoadEnvironmentVariables::class,
+                LoadConfiguration::class,
             ]);
-            $app->instance('request', \Illuminate\Http\Request::create('/'));
+            $app->instance('request', Request::create('/'));
         }
-    } catch (\Throwable) {
+    } catch (Throwable) {
         // Graceful fallback if application bootstrap is deferred
     }
 }
@@ -86,4 +90,3 @@ if (class_exists(Plugin::class)) {
         BrowserSnapshotManager::registerPestHooks();
     };
 }
-

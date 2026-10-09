@@ -10,6 +10,7 @@ use Eldinbiz\RubberStamp\Support\BrowserEnvironmentDoctor;
 use Eldinbiz\RubberStamp\Support\BrowserProcessSanitizer;
 use Illuminate\Console\Command;
 use Symfony\Component\Process\Process;
+use Throwable;
 
 final class TestBrowserCommand extends Command
 {
@@ -420,14 +421,16 @@ final class TestBrowserCommand extends Command
             return self::SUCCESS;
         } finally {
             $restoreHot();
+
             try {
                 $sanitizer = new BrowserProcessSanitizer(base_path(), (string) config('app.name', 'laravel'));
                 $lingering = $sanitizer->detectLingeringProcesses();
+
                 if (! empty($lingering)) {
                     $sanitizer->killProcesses(array_column($lingering, 'pid'));
                 }
                 $sanitizer->cleanStaleTempFiles();
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // Suppress cleanup errors to avoid masking test exit status or exceptions
             }
         }

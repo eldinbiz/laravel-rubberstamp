@@ -54,6 +54,7 @@ it('aborts gracefully when no browser test suites are discovered', function () {
     $this->artisan('rubberstamp:browser', [
         '--selected-test-suite' => true,
         '--skip-health-check' => true,
+        '--skip-orphan-check' => true,
     ])
         ->expectsOutputToContain('No test suites or classes discovered for [browser].')
         ->assertExitCode(0);
@@ -64,6 +65,7 @@ it('allows interactive browser test suite selection when targets exist', functio
         'target' => 'tests/Feature',
         '--selected-test-suite' => true,
         '--skip-health-check' => true,
+        '--skip-orphan-check' => true,
         '--pest-path' => '/nonexistent/path/to/pest',
     ])
         ->expectsQuestion('Select browser test suites or classes to run:', ['1'])
@@ -91,13 +93,17 @@ it('resolves browser test artifacts inside results_dir', function () {
 });
 
 it('runs health check by default before executing browser tests', function () {
-    $this->artisan('rubberstamp:browser', ['--target' => 'tests/Browser/NonExistentTest.php'])
+    $this->artisan('rubberstamp:browser', [
+        '--target' => 'tests/Browser/NonExistentTest.php',
+        '--skip-orphan-check' => true,
+    ])
         ->expectsOutputToContain('Browser Testing & Playwright Environment Doctor');
 });
 
 it('bypasses health check when --skip-health-check is supplied', function () {
     $this->artisan('rubberstamp:browser', [
         '--skip-health-check' => true,
+        '--skip-orphan-check' => true,
         '--target' => 'tests/Browser/NonExistentTest.php',
     ])
         ->doesntExpectOutputToContain('Browser Testing & Playwright Environment Doctor');

@@ -228,6 +228,7 @@ final class BrowserProcessSanitizer
 
         if (is_dir($tempDir)) {
             $files = @glob($tempDir.DIRECTORY_SEPARATOR.'*');
+
             if (is_array($files)) {
                 foreach ($files as $file) {
                     if (is_file($file)) {
@@ -269,6 +270,7 @@ final class BrowserProcessSanitizer
         $sockets = $this->fetchWindowsListeningSockets();
 
         $listeningPids = [];
+
         if ($recordedPort !== null) {
             foreach ($sockets as $s) {
                 if ($s['port'] === $recordedPort) {
@@ -361,6 +363,7 @@ final class BrowserProcessSanitizer
         // Always run alongside CIM to catch detached Node child workers and Chromium processes that escaped parent-tree filtering
         foreach ($runningProcesses as $proc) {
             $pid = $proc['pid'];
+
             if (in_array($pid, $seenPids, true)) {
                 continue;
             }
@@ -398,7 +401,7 @@ final class BrowserProcessSanitizer
             }
 
             // Node.exe with no open listening ports (zombie child workers left by Playwright)
-            if ($isNode && empty($ports)) {
+            if (empty($ports)) {
                 $seenPids[] = $pid;
                 $detected[] = [
                     'pid' => $pid,

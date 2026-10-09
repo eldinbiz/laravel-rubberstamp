@@ -26,6 +26,7 @@ final class RubberStampBrowserMiddleware
         // Synchronize spoofed HTTP methods for both multipart and urlencoded requests
         if ($request->isMethod('POST') && $request->has('_method')) {
             $method = strtoupper((string) $request->input('_method'));
+
             if (in_array($method, ['PUT', 'PATCH', 'DELETE'], true)) {
                 $request->setMethod($method);
             }
@@ -53,6 +54,7 @@ final class RubberStampBrowserMiddleware
     private function parseMultipartContent(Request $request): void
     {
         $contentType = $request->header('content-type', '');
+
         if (! preg_match('/boundary=(?:")?([^";\s]+)(?:")?/', $contentType, $matches)) {
             return;
         }
@@ -66,6 +68,7 @@ final class RubberStampBrowserMiddleware
 
         foreach ($parts as $part) {
             $part = ltrim($part, "\r\n");
+
             if ($part === '' || $part === '--' || $part === "--\r\n") {
                 continue;
             }
@@ -83,6 +86,7 @@ final class RubberStampBrowserMiddleware
             if (str_contains($part, 'filename=')) {
                 if (preg_match('/filename="([^"]*)"/', $part, $filenameMatches)) {
                     $filename = $filenameMatches[1];
+
                     if ($filename !== '') {
                         preg_match('/Content-Type: ([^\r\n]+)/', $part, $fileTypeMatches);
                         $fileType = $fileTypeMatches[1] ?? 'application/octet-stream';
@@ -91,6 +95,7 @@ final class RubberStampBrowserMiddleware
                         $fileContent = isset($bodyParts[1]) ? rtrim($bodyParts[1], "\r\n") : '';
 
                         $tempPath = tempnam(sys_get_temp_dir(), 'browser_upload_');
+
                         if ($tempPath !== false) {
                             file_put_contents($tempPath, $fileContent);
                             $files[$fieldName] = new UploadedFile($tempPath, $filename, $fileType, null, true);

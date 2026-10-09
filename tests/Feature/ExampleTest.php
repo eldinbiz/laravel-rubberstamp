@@ -24,6 +24,6 @@ it('loads the package views', function () {
 
 it('registers the artisan command', function () {
     $this->artisan('rubberstamp')
-        ->expectsOutputToContain('RubberStamp Testing Suite')
+        ->expectsOutputToContain('RubberStamp :: Automated Test Report Generator')
         ->assertSuccessful();
 });

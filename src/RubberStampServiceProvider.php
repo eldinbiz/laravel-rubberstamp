@@ -9,6 +9,8 @@ use Eldinbiz\RubberStamp\Console\Commands\PruneCommand;
 use Eldinbiz\RubberStamp\Console\Commands\RubberStampCommand;
 use Eldinbiz\RubberStamp\Console\Commands\TestBrowserCommand;
 use Eldinbiz\RubberStamp\Console\Commands\TestFeaturesCommand;
+use Eldinbiz\RubberStamp\Http\Middleware\RubberStampBrowserMiddleware;
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 
 class RubberStampServiceProvider extends ServiceProvider
@@ -32,9 +34,9 @@ class RubberStampServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'rubberstamp');
 
         if ($this->app->environment('testing')) {
-            /** @var \Illuminate\Routing\Router $router */
+            /** @var Router $router */
             $router = $this->app->make('router');
-            $router->prependMiddlewareToGroup('web', \Eldinbiz\RubberStamp\Http\Middleware\RubberStampBrowserMiddleware::class);
+            $router->prependMiddlewareToGroup('web', RubberStampBrowserMiddleware::class);
         }
 
         if (! $this->app->runningInConsole()) {
