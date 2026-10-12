@@ -382,6 +382,8 @@ final class TestBrowserCommand extends Command
             $process->start();
 
             $lastOutputTime = microtime(true);
+            $lastCountdownRender = 0.0;
+            $countdownActive = false;
             $timedOut = false;
 
             while ($process->isRunning()) {
@@ -390,6 +392,11 @@ final class TestBrowserCommand extends Command
 
                 if ($out !== '' || $err !== '') {
                     $lastOutputTime = microtime(true);
+
+                    if ($countdownActive) {
+                        $this->output->write("\r\x1b[2K");
+                        $countdownActive = false;
+                    }
 
                     if ($out !== '') {
                         $this->output->write($out);
@@ -406,14 +413,35 @@ final class TestBrowserCommand extends Command
                             fwrite($testLogHandle, $err);
                         }
                     }
-                } elseif ($idleTimeout > 0 && (microtime(true) - $lastOutputTime) > $idleTimeout) {
-                    $timedOut = true;
-                    $process->stop(5);
+                } elseif ($idleTimeout > 0) {
+                    $elapsed = microtime(true) - $lastOutputTime;
 
-                    break;
+                    if ($elapsed > $idleTimeout) {
+                        $timedOut = true;
+                        $process->stop(5);
+
+                        break;
+                    }
+
+                    if ($elapsed >= 5.0 && $this->output->isDecorated()) {
+                        $now = microtime(true);
+
+                        if ($now - $lastCountdownRender >= 1.0) {
+                            $lastCountdownRender = $now;
+                            $remaining = max(0, (int) ceil($idleTimeout - $elapsed));
+
+                            $this->output->write("\r\x1b[2K  <fg=gray>Waiting for test output... ({$remaining}s until idle timeout)</>");
+                            $countdownActive = true;
+                        }
+                    }
                 }
 
                 usleep(50_000);
+            }
+
+            if ($countdownActive) {
+                $this->output->write("\r\x1b[2K");
+                $countdownActive = false;
             }
 
             $remainingOut = $process->getIncrementalOutput();
