@@ -27,6 +27,7 @@ final class TestBrowserCommand extends Command
         {--skip-health-check : Skip pre-flight environment health check}
         {--force-kill-orphans : Automatically terminate lingering Playwright processes without prompting}
         {--skip-orphan-check : Skip checking for lingering Playwright processes}
+        {--idle-timeout= : Maximum seconds to wait without output before timing out (defaults to 90s)}
         {--pest-path= : Custom path to Pest binary}
         {--author= : Author/tester name (defaults to git config user.name)}
         {--sop= : SOP policy or RFC ticket code (defaults to N/A)}
@@ -277,6 +278,9 @@ final class TestBrowserCommand extends Command
         try {
             $this->cleanupPreTestArtifacts();
 
+            $sanitizer = new BrowserProcessSanitizer(base_path(), (string) config('app.name', 'laravel'));
+            $sanitizer->persistActiveSession((int) getmypid());
+
             $rawTarget = $this->argument('target');
             $targetArg = is_string($rawTarget) && $rawTarget !== '' ? $rawTarget : null;
             $target = $targetArg ?? 'tests/Browser';
@@ -370,13 +374,84 @@ final class TestBrowserCommand extends Command
             }
             $this->newLine();
 
-            $exitCode = $process->run(function (string $type, string $buffer) use ($testLogHandle): void {
-                $this->output->write($buffer);
+            $idleTimeoutOption = $this->option('idle-timeout');
+            $idleTimeout = $idleTimeoutOption !== null
+                ? (int) $idleTimeoutOption
+                : (int) config('rubberstamp.idle_timeout', 90);
+
+            $process->start();
+
+            $lastOutputTime = microtime(true);
+            $timedOut = false;
+
+            while ($process->isRunning()) {
+                $out = $process->getIncrementalOutput();
+                $err = $process->getIncrementalErrorOutput();
+
+                if ($out !== '' || $err !== '') {
+                    $lastOutputTime = microtime(true);
+
+                    if ($out !== '') {
+                        $this->output->write($out);
+
+                        if (is_resource($testLogHandle)) {
+                            fwrite($testLogHandle, $out);
+                        }
+                    }
+
+                    if ($err !== '') {
+                        $this->output->write($err);
+
+                        if (is_resource($testLogHandle)) {
+                            fwrite($testLogHandle, $err);
+                        }
+                    }
+                } elseif ($idleTimeout > 0 && (microtime(true) - $lastOutputTime) > $idleTimeout) {
+                    $timedOut = true;
+                    $process->stop(5);
+
+                    break;
+                }
+
+                usleep(50_000);
+            }
+
+            $remainingOut = $process->getIncrementalOutput();
+
+            if ($remainingOut !== '') {
+                $this->output->write($remainingOut);
 
                 if (is_resource($testLogHandle)) {
-                    fwrite($testLogHandle, $buffer);
+                    fwrite($testLogHandle, $remainingOut);
                 }
-            });
+            }
+
+            $remainingErr = $process->getIncrementalErrorOutput();
+
+            if ($remainingErr !== '') {
+                $this->output->write($remainingErr);
+
+                if (is_resource($testLogHandle)) {
+                    fwrite($testLogHandle, $remainingErr);
+                }
+            }
+
+            if ($timedOut) {
+                $this->newLine();
+                $this->line('<fg=red;options=bold>=================================================================</>');
+                $this->line("<fg=red;options=bold>Browser test execution timed out: no output received for {$idleTimeout}s.</>");
+                $this->line('<fg=yellow>Playwright/Chromium may have deadlocked during initialization, or a slow test took longer than expected without emitting output.</>');
+                $this->line('<fg=yellow>Lingering test processes and socket locks will be terminated in cleanup.</>');
+                $this->newLine();
+                $this->line('<fg=cyan>Hint:</> If your tests require more time between output chunks, increase the timeout with:');
+                $this->line('      <fg=white;options=bold>php artisan rubberstamp:browser --idle-timeout=180</>  (or 0 to disable)');
+                $this->line('      or configure <fg=white>RUBBERSTAMP_IDLE_TIMEOUT=180</> in your .env file.');
+                $this->line('<fg=red;options=bold>=================================================================</>');
+
+                $exitCode = 124;
+            } else {
+                $exitCode = $process->getExitCode() ?? 1;
+            }
 
             if (is_resource($testLogHandle)) {
                 fclose($testLogHandle);
@@ -424,6 +499,7 @@ final class TestBrowserCommand extends Command
 
             try {
                 $sanitizer = new BrowserProcessSanitizer(base_path(), (string) config('app.name', 'laravel'));
+                $sanitizer->cleanActiveSession();
                 $lingering = $sanitizer->detectLingeringProcesses();
 
                 if (! empty($lingering)) {
@@ -491,6 +567,7 @@ final class TestBrowserCommand extends Command
             '--approved-by=',
             '--acknowledged-by=',
             '--selected-test-suite=',
+            '--idle-timeout=',
         ];
 
         $target = $this->argument('target');

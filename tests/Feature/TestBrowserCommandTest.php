@@ -28,6 +28,7 @@ it('has the expected command description and options', function () {
         ->and($command->getDefinition()->hasOption('skip-health-check'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('force-kill-orphans'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('skip-orphan-check'))->toBeTrue()
+        ->and($command->getDefinition()->hasOption('idle-timeout'))->toBeTrue()
         ->and($command->getDefinition()->hasOption('selected-test-suite'))->toBeTrue()
         ->and($command->getDefinition()->hasArgument('target'))->toBeTrue();
 });
@@ -83,6 +84,7 @@ it('exposes the default package configurations', function () {
         ->and(config('rubberstamp.pest_log_dir'))->toBe('doctest-reports/test-log')
         ->and(config('rubberstamp.test_log_dir'))->toBe('doctest-reports/test-log')
         ->and(config('rubberstamp.memory_limit'))->toBe('1024M')
+        ->and(config('rubberstamp.idle_timeout'))->toBe(90)
         ->and(config('rubberstamp.cleanup_snapshots_on_failure'))->toBeTrue();
 });
 

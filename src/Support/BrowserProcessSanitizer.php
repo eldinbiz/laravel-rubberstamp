@@ -37,9 +37,10 @@ final class BrowserProcessSanitizer
 
         $rawProcesses = $this->fetchSystemProcesses();
         $recordedPort = $this->getRecordedPort();
+        $recordedSessionPid = $this->getRecordedSessionPid();
         $listeningPids = $recordedPort !== null ? $this->fetchPidsListeningOnPort($recordedPort) : [];
 
-        return $this->filterLingeringProcesses($rawProcesses, $recordedPort, $listeningPids);
+        return $this->filterLingeringProcesses($rawProcesses, $recordedPort, $listeningPids, $recordedSessionPid);
     }
 
     /**
@@ -55,20 +56,82 @@ final class BrowserProcessSanitizer
      *     command: string
      * }>
      */
-    public function filterLingeringProcesses(array $processes, ?int $recordedPort = null, array $listeningPids = []): array
+    public function filterLingeringProcesses(array $processes, ?int $recordedPort = null, array $listeningPids = [], ?int $recordedSessionPid = null): array
     {
         $normalizedBase = strtolower(str_replace('\\', '/', $this->basePath));
         $normalizedBaseBackslash = strtolower(str_replace('/', '\\', $this->basePath));
 
         $detectedNodeProcesses = [];
         $detectedChromiumProcesses = [];
+        $detectedPhpProcesses = [];
+        $currentPid = getmypid();
 
-        // 1. Identify Node.js / Playwright server processes belonging to this project
+        // 1. Identify Node.js, Playwright, and active/lingering PHP test runner processes
         foreach ($processes as $proc) {
             $cmd = $proc['command'];
             $cmdLower = strtolower($cmd);
             $nameLower = strtolower($proc['name']);
 
+            // Never match our own process
+            if ($currentPid !== false && $proc['pid'] === $currentPid) {
+                continue;
+            }
+
+            // Explicitly ignore active developer runners and CLI server/queue watchers
+            $isDevRunner = str_contains($cmdLower, 'concurrently')
+                || str_contains($cmdLower, 'vite')
+                || str_contains($cmdLower, 'npm-cli')
+                || str_contains($cmdLower, 'artisan serve')
+                || str_contains($cmdLower, 'artisan queue:listen')
+                || str_contains($cmdLower, 'artisan queue:work')
+                || str_contains($cmdLower, 'artisan schedule:work')
+                || str_contains($cmdLower, 'artisan pulse:check');
+
+            if ($isDevRunner) {
+                continue;
+            }
+
+            $matchesPath = str_contains($cmdLower, $normalizedBase) || str_contains($cmdLower, $normalizedBaseBackslash);
+            $hasRelativeNodeModules = str_contains($cmdLower, 'node_modules') && ! str_contains($cmdLower, ':\\') && ! str_starts_with($cmdLower, '/');
+            $hasAbsoluteArtisanPath = (bool) preg_match('/(?:[a-zA-Z]:[\\\\\/]|\/)[^\s"]*artisan/i', $cmd);
+            $hasRelativeArtisan = str_contains($cmdLower, 'artisan') && ! $hasAbsoluteArtisanPath;
+            $holdsRecordedSession = $recordedSessionPid !== null && $proc['pid'] === $recordedSessionPid;
+
+            // 1a. Check for tagged Pest browser test runner (rubberstamp.tag)
+            $isPhp = str_contains($nameLower, 'php');
+            $appNameLower = strtolower($this->appName);
+
+            if ($isPhp && str_contains($cmdLower, 'rubberstamp.tag=')) {
+                $isTaggedPest = str_contains($cmdLower, "[{$appNameLower}][rubberstamp]-browser-test")
+                    || ($matchesPath && str_contains($cmdLower, '[rubberstamp]-browser-test'));
+
+                if ($isTaggedPest) {
+                    $detectedPhpProcesses[$proc['pid']] = [
+                        'pid' => $proc['pid'],
+                        'name' => $proc['name'],
+                        'port' => null,
+                        'scope' => ($this->appName ?: basename($this->basePath)).' (Pest Browser Runner)',
+                        'command' => $this->truncateCommand($cmd),
+                    ];
+
+                    continue;
+                }
+            }
+
+            // 1b. Check for sibling rubberstamp:browser CLI session or recorded session PID for this app
+            if ($holdsRecordedSession || ($isPhp && str_contains($cmdLower, 'rubberstamp:browser') && ($matchesPath || $hasRelativeArtisan))) {
+                $detectedPhpProcesses[$proc['pid']] = [
+                    'pid' => $proc['pid'],
+                    'name' => $proc['name'],
+                    'port' => null,
+                    'scope' => ($this->appName ?: basename($this->basePath)).' (Active Browser Session)',
+                    'command' => $this->truncateCommand($cmd),
+                ];
+
+                continue;
+            }
+
+            // 1c. Check for Playwright Node server processes belonging to this project
             $isNode = str_contains($nameLower, 'node') || str_contains($nameLower, 'pw-server');
             $isPlaywrightServer = str_contains($cmdLower, 'playwright') && (str_contains($cmdLower, 'run-server') || str_contains($cmdLower, 'launchserver'));
 
@@ -76,8 +139,6 @@ final class BrowserProcessSanitizer
                 continue;
             }
 
-            $matchesPath = str_contains($cmdLower, $normalizedBase) || str_contains($cmdLower, $normalizedBaseBackslash);
-            $hasRelativeNodeModules = str_contains($cmdLower, 'node_modules') && ! str_contains($cmdLower, ':\\') && ! str_starts_with($cmdLower, '/');
             $holdsRecordedPort = $recordedPort !== null && in_array($proc['pid'], $listeningPids, true);
 
             $cliPort = null;
@@ -111,7 +172,12 @@ final class BrowserProcessSanitizer
             $cmd = $proc['command'];
             $cmdLower = strtolower($cmd);
 
-            $isChromium = str_contains($nameLower, 'chromium') || str_contains($nameLower, 'chrome');
+            $isPlaywrightBinary = str_contains($cmdLower, 'ms-playwright')
+                || str_contains($cmdLower, 'chromium_headless_shell');
+
+            $isChromium = str_contains($nameLower, 'chromium')
+                || str_contains($nameLower, 'chrome')
+                || $isPlaywrightBinary;
 
             if (! $isChromium) {
                 continue;
@@ -120,7 +186,15 @@ final class BrowserProcessSanitizer
             $isChildOfNode = in_array($proc['ppid'], $nodePids, true);
             $isHeadlessTestBrowser = str_contains($cmdLower, '--remote-debugging-pipe') || str_contains($cmdLower, '--headless');
 
-            if ($isChildOfNode && $isHeadlessTestBrowser) {
+            if ($isPlaywrightBinary) {
+                $detectedChromiumProcesses[$proc['pid']] = [
+                    'pid' => $proc['pid'],
+                    'name' => $proc['name'],
+                    'port' => null,
+                    'scope' => 'Playwright Browser Worker',
+                    'command' => $this->truncateCommand($cmd),
+                ];
+            } elseif ($isChildOfNode && $isHeadlessTestBrowser) {
                 $detectedChromiumProcesses[$proc['pid']] = [
                     'pid' => $proc['pid'],
                     'name' => $proc['name'],
@@ -139,7 +213,7 @@ final class BrowserProcessSanitizer
             }
         }
 
-        return array_merge($detectedNodeProcesses, $detectedChromiumProcesses);
+        return array_merge($detectedPhpProcesses, $detectedNodeProcesses, $detectedChromiumProcesses);
     }
 
     /**
@@ -215,6 +289,66 @@ final class BrowserProcessSanitizer
     }
 
     /**
+     * Read recorded active session PID from rubberstamp-session.json state file.
+     */
+    public function getRecordedSessionPid(): ?int
+    {
+        $tempFile = $this->basePath.DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'pestphp'.DIRECTORY_SEPARATOR.'pest-plugin-browser'.DIRECTORY_SEPARATOR.'.temp'.DIRECTORY_SEPARATOR.'rubberstamp-session.json';
+
+        if (! file_exists($tempFile)) {
+            return null;
+        }
+
+        $content = @file_get_contents($tempFile);
+
+        if ($content === false) {
+            return null;
+        }
+
+        $data = json_decode($content, true);
+
+        if (is_array($data) && isset($data['pid']) && is_numeric($data['pid'])) {
+            return (int) $data['pid'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Persist active browser session PID into rubberstamp-session.json.
+     */
+    public function persistActiveSession(int $pid): void
+    {
+        $tempDir = $this->basePath.DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'pestphp'.DIRECTORY_SEPARATOR.'pest-plugin-browser'.DIRECTORY_SEPARATOR.'.temp';
+
+        if (! is_dir($tempDir)) {
+            @mkdir($tempDir, 0755, true);
+        }
+
+        $tempFile = $tempDir.DIRECTORY_SEPARATOR.'rubberstamp-session.json';
+        $payload = json_encode([
+            'pid' => $pid,
+            'time' => microtime(true),
+        ]);
+
+        if ($payload !== false) {
+            @file_put_contents($tempFile, $payload);
+        }
+    }
+
+    /**
+     * Remove the active session lock file.
+     */
+    public function cleanActiveSession(): void
+    {
+        $tempFile = $this->basePath.DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'pestphp'.DIRECTORY_SEPARATOR.'pest-plugin-browser'.DIRECTORY_SEPARATOR.'.temp'.DIRECTORY_SEPARATOR.'rubberstamp-session.json';
+
+        if (file_exists($tempFile)) {
+            @unlink($tempFile);
+        }
+    }
+
+    /**
      * Delete the stale playwright-server.json file and temp artifacts.
      */
     public function cleanStaleTempFiles(): void
@@ -224,6 +358,12 @@ final class BrowserProcessSanitizer
 
         if (file_exists($tempFile)) {
             @unlink($tempFile);
+        }
+
+        $sessionFile = $tempDir.DIRECTORY_SEPARATOR.'rubberstamp-session.json';
+
+        if (file_exists($sessionFile)) {
+            @unlink($sessionFile);
         }
 
         if (is_dir($tempDir)) {
@@ -267,6 +407,7 @@ final class BrowserProcessSanitizer
     public function detectWindowsLingeringProcesses(): array
     {
         $recordedPort = $this->getRecordedPort();
+        $recordedSessionPid = $this->getRecordedSessionPid();
         $sockets = $this->fetchWindowsListeningSockets();
 
         $listeningPids = [];
@@ -279,136 +420,72 @@ final class BrowserProcessSanitizer
             }
         }
 
-        $detected = [];
-        $seenPids = [];
-
         // 1. High-fidelity CIM/PowerShell process discovery with CommandLine & ParentProcessId
         $cimProcesses = $this->fetchWindowsProcessesViaCim();
 
         if (! empty($cimProcesses)) {
-            $filtered = $this->filterLingeringProcesses($cimProcesses, $recordedPort, $listeningPids);
-
-            foreach ($filtered as $proc) {
-                $seenPids[] = $proc['pid'];
-                $detected[] = $proc;
-            }
+            return $this->filterLingeringProcesses($cimProcesses, $recordedPort, $listeningPids, $recordedSessionPid);
         }
 
-        // 2. Socket-based fallback / supplementary detection via tasklist & netstat
+        // 2. Fallback detection via netstat & tasklist (zero PowerShell / AppLocker mode)
         $runningProcesses = $this->fetchWindowsProcesses();
         $procMap = [];
         foreach ($runningProcesses as $proc) {
             $procMap[$proc['pid']] = $proc['name'];
         }
 
-        $ignoredPorts = [5173, 8000, 3000];
-        $hotFile = $this->basePath.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'hot';
+        $detected = [];
 
-        if (file_exists($hotFile)) {
-            $hotUrl = @file_get_contents($hotFile);
+        // 2a. Recorded active session PID check in fallback mode
+        if ($recordedSessionPid !== null && isset($procMap[$recordedSessionPid])) {
+            $name = $procMap[$recordedSessionPid];
+            $detected[] = [
+                'pid' => $recordedSessionPid,
+                'name' => $name,
+                'port' => null,
+                'scope' => ($this->appName ?: basename($this->basePath)).' (Active Browser Session)',
+                'command' => "{$name} (recorded active session PID {$recordedSessionPid})",
+            ];
+        }
 
-            if ($hotUrl !== false && preg_match('/:(\d+)/', $hotUrl, $m)) {
-                $ignoredPorts[] = (int) $m[1];
+        // 2b. Sockets strictly on the recorded port from playwright-server.json
+        if ($recordedPort !== null) {
+            foreach ($sockets as $sock) {
+                $pid = $sock['pid'];
+                $port = $sock['port'];
+
+                if ($port !== $recordedPort || ! isset($procMap[$pid])) {
+                    continue;
+                }
+
+                $name = $procMap[$pid];
+                $nameLower = strtolower($name);
+
+                if (str_contains($nameLower, 'node') || str_contains($nameLower, 'pw-server')) {
+                    $detected[] = [
+                        'pid' => $pid,
+                        'name' => $name,
+                        'port' => $recordedPort,
+                        'scope' => $this->appName ?: basename($this->basePath),
+                        'command' => "{$name} listening on recorded port {$recordedPort}",
+                    ];
+                }
             }
         }
 
-        // Map all listening ports by PID
-        $pidPorts = [];
-        foreach ($sockets as $sock) {
-            $pidPorts[$sock['pid']][] = $sock['port'];
-        }
-
-        // 2a. Sockets on recorded port or dynamic test ports (>= 49152)
-        foreach ($sockets as $sock) {
-            $pid = $sock['pid'];
-            $port = $sock['port'];
-
-            if (in_array($pid, $seenPids, true)) {
-                continue;
-            }
-
-            if (! isset($procMap[$pid])) {
-                continue;
-            }
-
-            $name = $procMap[$pid];
-            $nameLower = strtolower($name);
-
-            $isTargetProcess = str_contains($nameLower, 'node') || str_contains($nameLower, 'chromium') || str_contains($nameLower, 'chrome');
-
-            if (! $isTargetProcess) {
-                continue;
-            }
-
-            $isRecordedPort = $recordedPort !== null && $port === $recordedPort;
-            $isDynamicTestPort = $port >= 49152 && ! in_array($port, $ignoredPorts, true);
-
-            if ($isRecordedPort || $isDynamicTestPort) {
-                $seenPids[] = $pid;
-                $scope = $isRecordedPort
-                    ? ($this->appName ?: basename($this->basePath))
-                    : ($this->appName ?: basename($this->basePath)).' (port '.$port.')';
-
-                $detected[] = [
-                    'pid' => $pid,
-                    'name' => $name,
-                    'port' => $port,
-                    'scope' => $scope,
-                    'command' => "{$name} listening on port {$port}",
-                ];
-            }
-        }
-
-        // 2b. Supplementary sweep: Unattached or orphaned test processes from tasklist
-        // Always run alongside CIM to catch detached Node child workers and Chromium processes that escaped parent-tree filtering
+        // 2b. Supplementary Chromium check in fallback mode (only standalone chromium.exe)
         foreach ($runningProcesses as $proc) {
             $pid = $proc['pid'];
-
-            if (in_array($pid, $seenPids, true)) {
-                continue;
-            }
-
             $name = $proc['name'];
             $nameLower = strtolower($name);
 
-            $isNode = str_contains($nameLower, 'node');
-            $isChromium = str_contains($nameLower, 'chromium');
-
-            if (! ($isNode || $isChromium)) {
-                continue;
-            }
-
-            // Never kill processes listening on protected ports (e.g. Vite on 5173)
-            $ports = $pidPorts[$pid] ?? [];
-            $hasProtectedPort = array_any($ports, fn (int $p): bool => in_array($p, $ignoredPorts, true) || ($p < 49152 && $p !== $recordedPort));
-
-            if ($hasProtectedPort) {
-                continue;
-            }
-
-            // Chromium on a test machine is always an orphaned test browser
-            if ($isChromium) {
-                $seenPids[] = $pid;
+            if ($nameLower === 'chromium.exe') {
                 $detected[] = [
                     'pid' => $pid,
                     'name' => $name,
                     'port' => null,
                     'scope' => 'Orphaned Test Browser',
                     'command' => "{$name} (unattached test browser)",
-                ];
-
-                continue;
-            }
-
-            // Node.exe with no open listening ports (zombie child workers left by Playwright)
-            if (empty($ports)) {
-                $seenPids[] = $pid;
-                $detected[] = [
-                    'pid' => $pid,
-                    'name' => $name,
-                    'port' => null,
-                    'scope' => ($this->appName ?: basename($this->basePath)).' (orphaned node worker)',
-                    'command' => "{$name} (unattached test worker)",
                 ];
             }
         }
@@ -633,7 +710,7 @@ final class BrowserProcessSanitizer
      */
     private function fetchWindowsProcessesViaCim(): array
     {
-        $script = 'Get-CimInstance Win32_Process | Where-Object { $_.Name -in @(\'node.exe\',\'chromium.exe\',\'chrome.exe\') } | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress';
+        $script = 'Get-CimInstance Win32_Process | Where-Object { $_.Name -in @(\'node.exe\',\'chromium.exe\',\'chrome.exe\',\'php.exe\',\'php\') } | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress';
         $encodedCommand = base64_encode(mb_convert_encoding($script, 'UTF-16LE', 'UTF-8'));
 
         $process = new Process([

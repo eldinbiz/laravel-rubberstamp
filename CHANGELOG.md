@@ -1,5 +1,17 @@
 # Release Notes
 
+## [v0.2.5](https://github.com/eldinbiz/laravel-rubberstamp/compare/v0.2.4...v0.2.5) - 2026-10-09
+
+### Added
+- **Streaming Idle Watchdog**: Introduced an incremental output watchdog loop in `rubberstamp:browser` (configurable via `config('rubberstamp.idle_timeout')` or `--idle-timeout=<seconds>`, defaulting to 90s). Automatically terminates deadlocked Playwright/Chromium startup attempts with exit code 124 and reaps orphaned socket locks, eliminating infinite hangs on consecutive runs.
+
+### Fixed
+- **Actionable Idle Timeout Guidance**: Enhanced the idle watchdog timeout banner in `rubberstamp:browser` to provide clear developer guidance when slow test suites exceed 90 seconds without emitting output. The error message now clarifies potential causes (startup deadlock vs. slow test execution) and renders copy-pasteable syntax for `--idle-timeout=<seconds>` (or `0` to disable) and the `RUBBERSTAMP_IDLE_TIMEOUT` `.env` variable; updated the `{--idle-timeout=}` Artisan signature description to explicitly state the default 90s value.
+- **Active & Lingering Test Session Detection**: Wired runtime directive inspection (`-d rubberstamp.tag=[<app>][rubberstamp]-browser-test`), relative `artisan` command line recognition, and active session state locking (`rubberstamp-session.json`) into `BrowserProcessSanitizer` across Windows CIM and POSIX process discovery. Instantly detects active or orphaned test sessions across multiple terminal windows before they can conflict on ports or corrupt test artifacts, while maintaining strict immunity for developer servers (`php artisan serve`, `php artisan queue:listen`, etc.).
+- **Playwright Browser Worker Path Detection**: Enhanced `BrowserProcessSanitizer` to identify all Playwright browser workers (including GPU and renderer child processes) by binary installation path (`ms-playwright` and `chromium_headless_shell`). Prevents orphaned helper processes from holding GPU/file locks across consecutive test runs while strictly preserving user Google Chrome instances.
+- **Development Tool Protection**: Eliminated false-positive detection of portless `node.exe` processes (such as `npx concurrently`, `npm run dev`, `vite`, and build watchers). Lingering process cleanup now exclusively relies on high-fidelity CIM command-line inspection and the recorded test port from `playwright-server.json`, preventing accidental termination of `composer dev` processes.
+- **Unit & Feature Test Coverage**: Added tests in `BrowserProcessSanitizerTest` ensuring CLI dev runners/watchers are ignored, tagged Pest runners and sibling browser sessions are identified, self PID is immune, and `ms-playwright` browser workers are reaped; updated `TestBrowserCommandTest` to assert `--idle-timeout` configuration and options.
+
 ## [v0.2.4](https://github.com/eldinbiz/laravel-rubberstamp/compare/v0.2.3...v0.2.4) - 2026-10-09
 
 ### Added

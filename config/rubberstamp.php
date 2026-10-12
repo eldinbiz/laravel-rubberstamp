@@ -44,6 +44,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Idle Watchdog Timeout (Seconds)
+    |--------------------------------------------------------------------------
+    |
+    | Maximum seconds to wait for output during browser test execution before
+    | timing out. Protects against Playwright/browser launch deadlocks.
+    | Set to 0 to disable.
+    |
+    */
+    'idle_timeout' => (int) env('RUBBERSTAMP_IDLE_TIMEOUT', 90),
+
+    /*
+    |--------------------------------------------------------------------------
     | Post-Run Snapshot Management
     |--------------------------------------------------------------------------
     |
