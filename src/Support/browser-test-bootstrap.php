@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Pest\Plugin;
 
 require_once __DIR__.'/BrowserSnapshotManager.php';
+require_once __DIR__.'/RealTimeProgressTracker.php';
 
 // 1. Pre-define Pest's global visit() before vendor/autoload.php loads Functions.php
 if (! function_exists('visit')) {

@@ -9,6 +9,7 @@ use Eldinbiz\RubberStamp\Support\AuditMetadataResolver;
 use Eldinbiz\RubberStamp\Support\BrowserEnvironmentDoctor;
 use Eldinbiz\RubberStamp\Support\BrowserProcessSanitizer;
 use Illuminate\Console\Command;
+use Symfony\Component\Console\Terminal;
 use Symfony\Component\Process\Process;
 use Throwable;
 
@@ -383,37 +384,191 @@ final class TestBrowserCommand extends Command
 
             $lastOutputTime = microtime(true);
             $lastCountdownRender = 0.0;
-            $countdownActive = false;
             $timedOut = false;
+
+            $activeTest = null;
+            $streamState = new class
+            {
+                public bool $summaryStarted = false;
+
+                public bool $suiteConcluded = false;
+
+                public int $liveLinesCount = 0;
+
+                public bool $transientActive = false;
+            };
+            $errBuffer = '';
+            $outBuffer = '';
+
+            $handleErrLine = function (string $line) use (
+                &$activeTest,
+                &$lastOutputTime,
+                $streamState,
+                $testLogHandle
+            ): void {
+                $trimmed = trim($line);
+
+                if (preg_match('/^__RUBBERSTAMP_EVENT__:([A-Z]+):([A-Za-z0-9+\/=]+)$/', $trimmed, $matches)) {
+                    if ($streamState->suiteConcluded) {
+                        return;
+                    }
+
+                    $event = $matches[1];
+                    $json = base64_decode($matches[2], true);
+                    $payload = is_string($json) ? json_decode($json, true) : null;
+
+                    if (is_array($payload)) {
+                        $lastOutputTime = microtime(true);
+                        $testName = (string) ($payload['name'] ?? 'test scenario');
+                        $testFile = (string) ($payload['file'] ?? '');
+                        $testLine = isset($payload['line']) ? (int) $payload['line'] : null;
+
+                        if ($event === 'START') {
+                            $activeTest = [
+                                'name' => $testName,
+                                'file' => $testFile,
+                                'line' => $testLine,
+                                'started_at' => microtime(true),
+                            ];
+
+                            $streamState->summaryStarted = false;
+
+                            if ($this->output->isDecorated()) {
+                                $terminalWidth = max(30, (new Terminal)->getWidth());
+                                $maxNameWidth = max(10, $terminalWidth - 15);
+                                $truncatedName = mb_strlen($testName) > $maxNameWidth
+                                    ? mb_substr($testName, 0, $maxNameWidth - 3).'...'
+                                    : $testName;
+
+                                $this->output->write("\r\x1b[2K  <fg=yellow>⏳</> <fg=white>{$truncatedName}</> <fg=gray>...</>\r");
+                                $streamState->transientActive = true;
+                            }
+                        } elseif ($event === 'END') {
+                            if ($streamState->transientActive) {
+                                $this->output->write("\r\x1b[2K");
+                                $streamState->transientActive = false;
+                            }
+
+                            if (! $streamState->summaryStarted && $this->output->isDecorated()) {
+                                $duration = isset($payload['duration'])
+                                    ? (float) $payload['duration']
+                                    : max(0.001, microtime(true) - ($activeTest['started_at'] ?? microtime(true)));
+                                $durationFormatted = number_format($duration, 2).'s';
+
+                                $terminalWidth = max(30, (new Terminal)->getWidth());
+                                $durationLen = mb_strlen($durationFormatted);
+                                $maxNameWidth = max(10, $terminalWidth - $durationLen - 8);
+                                $displayName = mb_strlen($testName) > $maxNameWidth
+                                    ? mb_substr($testName, 0, $maxNameWidth - 3).'...'
+                                    : $testName;
+
+                                $padding = max(2, $terminalWidth - mb_strlen($displayName) - $durationLen - 6);
+                                $this->output->writeln("  <fg=green>✓</> <fg=default>{$displayName}</>".str_repeat(' ', $padding)."<fg=gray>{$durationFormatted}</>");
+                                $streamState->liveLinesCount++;
+                            }
+
+                            $activeTest = null;
+                        }
+                    }
+
+                    return;
+                }
+
+                if ($line !== '') {
+                    $this->output->writeln($line);
+
+                    if (is_resource($testLogHandle)) {
+                        fwrite($testLogHandle, $line."\n");
+                    }
+                }
+            };
+
+            $handleOutLine = function (string $line) use (
+                $streamState,
+                $testLogHandle
+            ): void {
+                if (is_resource($testLogHandle)) {
+                    fwrite($testLogHandle, $line."\n");
+                }
+
+                $cleanLine = preg_replace('/\x1b\[[0-9;]*[a-zA-Z]/', '', $line) ?? '';
+                $strippedLine = trim(strip_tags($cleanLine));
+
+                if (preg_match('/^Tests:\s+/i', $strippedLine)) {
+                    $streamState->suiteConcluded = true;
+                }
+
+                // If Pest outputs an empty line (gap between test classes or before summary)
+                if ($strippedLine === '' && $streamState->liveLinesCount > 0) {
+                    if ($streamState->transientActive) {
+                        $this->output->write("\r\x1b[2K");
+                        $streamState->transientActive = false;
+                    }
+
+                    if ($this->output->isDecorated()) {
+                        $this->output->write(str_repeat("\x1b[1A\x1b[2K", $streamState->liveLinesCount));
+                        $streamState->liveLinesCount = 0;
+                    }
+
+                    $this->output->writeln($line);
+
+                    return;
+                }
+
+                // Detect Pest class status header (PASS, FAIL, WARN, RISKY, SKIPPED)
+                if (preg_match('/^(PASS|FAIL|WARN|RISKY|SKIPPED)\s+/i', $strippedLine)) {
+                    $streamState->summaryStarted = true;
+
+                    if ($streamState->transientActive) {
+                        $this->output->write("\r\x1b[2K");
+                        $streamState->transientActive = false;
+                    }
+
+                    if ($streamState->liveLinesCount > 0 && $this->output->isDecorated()) {
+                        $this->output->write(str_repeat("\x1b[1A\x1b[2K", $streamState->liveLinesCount));
+                        $streamState->liveLinesCount = 0;
+                    }
+                }
+
+                if ($streamState->transientActive) {
+                    $this->output->write("\r\x1b[2K");
+                    $streamState->transientActive = false;
+                }
+
+                $this->output->writeln($line);
+            };
 
             while ($process->isRunning()) {
                 $out = $process->getIncrementalOutput();
                 $err = $process->getIncrementalErrorOutput();
 
-                if ($out !== '' || $err !== '') {
+                if ($out !== '') {
                     $lastOutputTime = microtime(true);
+                    $outBuffer .= $out;
 
-                    if ($countdownActive) {
-                        $this->output->write("\r\x1b[2K");
-                        $countdownActive = false;
-                    }
-
-                    if ($out !== '') {
-                        $this->output->write($out);
-
-                        if (is_resource($testLogHandle)) {
-                            fwrite($testLogHandle, $out);
+                    if (str_contains($outBuffer, "\n")) {
+                        $lines = explode("\n", $outBuffer);
+                        $outBuffer = array_pop($lines);
+                        foreach ($lines as $l) {
+                            $handleOutLine(rtrim($l, "\r"));
                         }
                     }
+                }
 
-                    if ($err !== '') {
-                        $this->output->write($err);
+                if ($err !== '') {
+                    $lastOutputTime = microtime(true);
+                    $errBuffer .= $err;
 
-                        if (is_resource($testLogHandle)) {
-                            fwrite($testLogHandle, $err);
+                    if (str_contains($errBuffer, "\n")) {
+                        $lines = explode("\n", $errBuffer);
+                        $errBuffer = array_pop($lines);
+                        foreach ($lines as $l) {
+                            $handleErrLine(rtrim($l, "\r"));
                         }
                     }
-                } elseif ($idleTimeout > 0) {
+                }
+
+                if ($out === '' && $err === '' && $idleTimeout > 0) {
                     $elapsed = microtime(true) - $lastOutputTime;
 
                     if ($elapsed > $idleTimeout) {
@@ -430,8 +585,18 @@ final class TestBrowserCommand extends Command
                             $lastCountdownRender = $now;
                             $remaining = max(0, (int) ceil($idleTimeout - $elapsed));
 
-                            $this->output->write("\r\x1b[2K  <fg=gray>Waiting for test output... ({$remaining}s until idle timeout)</>");
-                            $countdownActive = true;
+                            if ($activeTest !== null) {
+                                $testElapsed = (int) floor(microtime(true) - $activeTest['started_at']);
+                                $terminalWidth = max(30, (new Terminal)->getWidth());
+                                $maxCountdownName = max(10, $terminalWidth - 55);
+                                $countdownName = mb_strlen($activeTest['name']) > $maxCountdownName
+                                    ? mb_substr($activeTest['name'], 0, $maxCountdownName - 3).'...'
+                                    : $activeTest['name'];
+                                $this->output->write("\r\x1b[2K  <fg=yellow>⏳</> <fg=white>{$countdownName}</> <fg=gray>(running for {$testElapsed}s, {$remaining}s until idle timeout)</>\r");
+                            } else {
+                                $this->output->write("\r\x1b[2K  <fg=gray>Waiting for test output... ({$remaining}s until idle timeout)</>\r");
+                            }
+                            $streamState->transientActive = true;
                         }
                     }
                 }
@@ -439,42 +604,86 @@ final class TestBrowserCommand extends Command
                 usleep(50_000);
             }
 
-            if ($countdownActive) {
+            if ($streamState->transientActive) {
                 $this->output->write("\r\x1b[2K");
-                $countdownActive = false;
+                $streamState->transientActive = false;
             }
 
             $remainingOut = $process->getIncrementalOutput();
 
             if ($remainingOut !== '') {
-                $this->output->write($remainingOut);
+                $outBuffer .= $remainingOut;
+            }
 
-                if (is_resource($testLogHandle)) {
-                    fwrite($testLogHandle, $remainingOut);
+            if ($outBuffer !== '') {
+                $lines = explode("\n", $outBuffer);
+                foreach ($lines as $l) {
+                    if ($l !== '') {
+                        $handleOutLine(rtrim($l, "\r"));
+                    }
                 }
+                $outBuffer = '';
             }
 
             $remainingErr = $process->getIncrementalErrorOutput();
 
             if ($remainingErr !== '') {
-                $this->output->write($remainingErr);
+                $errBuffer .= $remainingErr;
+            }
 
-                if (is_resource($testLogHandle)) {
-                    fwrite($testLogHandle, $remainingErr);
+            if ($errBuffer !== '') {
+                $lines = explode("\n", $errBuffer);
+                foreach ($lines as $l) {
+                    if ($l !== '') {
+                        $handleErrLine(rtrim($l, "\r"));
+                    }
                 }
+                $errBuffer = '';
             }
 
             if ($timedOut) {
-                $this->newLine();
-                $this->line('<fg=red;options=bold>=================================================================</>');
-                $this->line("<fg=red;options=bold>Browser test execution timed out: no output received for {$idleTimeout}s.</>");
-                $this->line('<fg=yellow>Playwright/Chromium may have deadlocked during initialization, or a slow test took longer than expected without emitting output.</>');
-                $this->line('<fg=yellow>Lingering test processes and socket locks will be terminated in cleanup.</>');
-                $this->newLine();
-                $this->line('<fg=cyan>Hint:</> If your tests require more time between output chunks, increase the timeout with:');
-                $this->line('      <fg=white;options=bold>php artisan rubberstamp:browser --idle-timeout=180</>  (or 0 to disable)');
-                $this->line('      or configure <fg=white>RUBBERSTAMP_IDLE_TIMEOUT=180</> in your .env file.');
-                $this->line('<fg=red;options=bold>=================================================================</>');
+                if ($activeTest !== null) {
+                    $stalledName = (string) $activeTest['name'];
+                    $stalledFile = (string) ($activeTest['file'] !== '' ? $activeTest['file'] : $target);
+                    $stalledLine = $activeTest['line'] ?? null;
+                    $stalledElapsed = number_format(microtime(true) - $activeTest['started_at'], 1).'s';
+
+                    $padding = max(2, 95 - mb_strlen($stalledName));
+                    $this->output->writeln("  <fg=red>✗</> <fg=default>{$stalledName}</>".str_repeat(' ', $padding)."<fg=red>[TIMED OUT after {$stalledElapsed}]</>");
+
+                    $this->newLine();
+                    $this->line('<fg=red;options=bold>=================================================================</>');
+                    $this->line("<fg=red;options=bold>Browser test scenario deadlock detected (no output for {$idleTimeout}s).</>");
+                    $this->line("<fg=yellow;options=bold>Stalled Scenario:</> <fg=white;options=bold>{$stalledName}</>");
+                    $this->line("<fg=yellow;options=bold>File Location:</>    <fg=white>{$stalledFile}".($stalledLine ? ":{$stalledLine}" : '').'</>');
+                    $this->line("<fg=yellow;options=bold>Elapsed on Test:</>  <fg=white>{$stalledElapsed}</>");
+                    $this->newLine();
+                    $this->line('<fg=yellow>The test stalled during execution (e.g. Playwright actionability deadlock, unresolvable element, or infinite wait).</>');
+                    $this->line('<fg=yellow>Lingering test processes and socket locks will be terminated in cleanup.</>');
+                    $this->newLine();
+                    $this->line('<fg=cyan>Hint:</> To isolate this specific scenario for debugging, run:');
+                    $this->line("      <fg=white;options=bold>./vendor/bin/pest --filter=\"{$stalledName}\" {$stalledFile}</>");
+                    $this->line('<fg=red;options=bold>=================================================================</>');
+                } else {
+                    $this->output->writeln('  <fg=red>✗</> <fg=default>Pre-Test Initialization</>'.str_repeat(' ', 65)."<fg=red>[TIMED OUT after {$idleTimeout}s]</>");
+
+                    $this->newLine();
+                    $this->line('<fg=red;options=bold>=================================================================</>');
+                    $this->line("<fg=red;options=bold>Playwright server launch deadlock detected (no output for {$idleTimeout}s).</>");
+                    $this->line('<fg=yellow;options=bold>Stalled Phase:</>    <fg=white;options=bold>Pre-test bootstrap / Playwright server launch</>');
+                    $this->line('<fg=yellow;options=bold>Details:</>          <fg=white>Pest deadlocked before Test 1 began executing (0 bytes emitted).</>');
+                    $this->newLine();
+                    $this->line('<fg=yellow>Probable Cause:</>');
+                    $this->line('  - Playwright WebSocket server failed to bind or emit "Listening on".');
+                    $this->line('  - Windows TCP socket TIME_WAIT state collision from an immediate rapid re-run.');
+                    $this->line('  - Ephemeral port exhaustion or orphaned background worker.');
+                    $this->newLine();
+                    $this->line('<fg=cyan>Remediation:</>');
+                    $this->line('  - Wait ~15-30 seconds for the Windows socket TIME_WAIT cooldown to clear.');
+                    $this->line('  - Ensure lingering test processes are purged:');
+                    $this->line("      <fg=white;options=bold>php artisan rubberstamp:browser {$target} --force-kill-orphans</>");
+                    $this->line('<fg=red;options=bold>=================================================================</>');
+                }
 
                 $exitCode = 124;
             } else {

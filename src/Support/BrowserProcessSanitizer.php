@@ -161,8 +161,7 @@ final class BrowserProcessSanitizer
             // or has node_modules reference on disk
             $isProjectPlaywright = $matchesPath
                 || $holdsRecordedPort
-                || $hasRelativeNodeModules
-                || (str_contains($cmdLower, 'node_modules') && str_contains($cmdLower, 'playwright'));
+                || $hasRelativeNodeModules;
 
             if ($isProjectPlaywright) {
                 $scope = $matchesPath

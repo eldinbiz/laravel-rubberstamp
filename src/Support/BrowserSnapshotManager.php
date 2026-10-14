@@ -180,10 +180,15 @@ final class BrowserSnapshotManager
                     [],
                     $browserDirs,
                     [
+                        1 => function (): void {
+                            /** @var object $this */
+                            RealTimeProgressTracker::emitStart($this);
+                        },
                         2 => function (): void {
                             /** @var object $this */
                             BrowserSnapshotManager::captureActiveSnapshot($this);
                             BrowserSnapshotManager::resetActiveBrowserPage();
+                            RealTimeProgressTracker::emitEnd($this);
                         },
                     ],
                 );

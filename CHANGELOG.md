@@ -1,5 +1,18 @@
 # Release Notes
 
+## [v0.4.0](https://github.com/eldinbiz/laravel-rubberstamp/compare/v0.3.1...v0.4.0) - 2026-10-14
+
+### Added
+- **Real-Time Scenario Streaming Protocol**: Introduced `RealTimeProgressTracker` to stream test lifecycle events (`START`, `END`) over `php://stderr` with base64-encoded JSON payloads. Emits zero temporary disk files, keeping developer workspaces and CI runners completely pristine.
+- **Progressive Scenario Checklist & Transient Ticker**: Renders an animated in-place ticker (`⏳ <testName> ...`) during scenario execution and live completion timers (`✓ <testName> ... 4.20s`), automatically clamped to terminal boundaries to prevent multi-row wrapping.
+- **Terminal Cursor Rewinding & Native Pest Formatting**: Uses ANSI cursor rewinding (`\x1b[1A\x1b[2K`) on class/suite conclusion boundaries (`PASS`/`FAIL` or blank line gap) to cleanly erase transient live checklist lines, allowing Pest's native Collision output (green banner, timings, and assertion statistics) to print with authentic spacing.
+- **Pre-Launch Socket Deadlock Diagnostics**: Added automatic differentiation between test scenario actionability deadlocks (e.g. Playwright element or scroll lockups) and pre-launch Playwright Node server socket deadlocks (`TIME_WAIT` port collision on rapid consecutive runs), displaying targeted diagnostic banners and reproduction commands.
+
+### Fixed
+- **Development Tool Protection**: Strengthened canonical path normalization in `BrowserProcessSanitizer` to guarantee that active developer processes (`composer dev`, Vite, `php artisan serve`, queue listeners) are never identified as orphaned test runners.
+- **Pest Suite Spacing**: Preserved Pest's authentic blank line gaps between test classes by triggering live stream rewind immediately on class gap boundaries.
+- **Static Analysis Compliance**: Encapsulated console streaming state inside a strongly-typed anonymous state object, resolving PHPStan Level 7 closure scope errors.
+
 ## [v0.2.6](https://github.com/eldinbiz/laravel-rubberstamp/compare/v0.2.5...v0.2.6) - 2026-10-12
 
 ### Added

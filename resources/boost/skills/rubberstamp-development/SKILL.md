@@ -66,9 +66,10 @@ Always use the canonical `rubberstamp:*` commands:
    ```bash
    php artisan rubberstamp:browser [target] [options]
    ```
-   - **Zero-Configuration**: Does not require adding traits or modifying `tests/TestCase.php`—hooks boot automatically at runtime.
+   - **Zero-Configuration & Real-Time Streaming**: Does not require adding traits or modifying `tests/TestCase.php`—hooks boot automatically at runtime. Streams test scenario progress with in-place animated tickers (`⏳`) and completion times (`✓`), rewinding dynamically upon completion to preserve Pest's native Collision output.
+   - **Deadlock & Socket Stall Isolation**: Automatically diagnoses and distinguishes between scenario execution hangs (Playwright actionability deadlocks, element timeouts) and pre-launch socket lockups (`TIME_WAIT` on rapid re-runs), presenting actionable reproduction commands.
    - **Pre-Flight Environment Doctor**: `--doctor` (or `--check`) verifies Playwright, Node, and Chromium binaries. Skip during repeated test runs with `--skip-health-check`.
-   - **Pre-Flight Socket & Process Sanitizer**: Automatically detects lingering `node.exe` or `chromium.exe` child processes and stale socket locks from prior runs. Displays an ASCII process table and prompts the developer to terminate them before deadlocking.
+   - **Pre-Flight Socket & Process Sanitizer**: Automatically detects lingering `node.exe` or `chromium.exe` child processes and stale socket locks from prior runs. Displays an ASCII process table and prompts the developer to terminate them before deadlocking while preserving concurrent `composer dev` processes.
    - `--force-kill-orphans`: Automatically terminate lingering Playwright processes without interactive confirmation (recommended for CI/CD pipelines).
    - `--skip-orphan-check`: Skip checking for lingering Playwright processes.
    - `--selected-test-suite`: Interactively select one or more browser test classes or suites using terminal checkboxes.

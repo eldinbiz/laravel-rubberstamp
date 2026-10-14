@@ -28,6 +28,8 @@ Hand it over, let management blindly "review" and sign it, and get back to writi
 
 ## Key Features
 
+- **Real-Time Test Streaming & Progress Tracking**: Live feedback as each test scenario executes with in-place animated tickers (`⏳`), per-scenario completion timers, and terminal cursor rewinding that seamlessly transitions to Pest's native Collision output upon completion.
+- **Deadlock & Socket Stall Diagnostics**: Instantly distinguishes between test scenario actionability hangs and pre-launch Playwright Node server socket collisions (`TIME_WAIT` on rapid re-runs) with actionable reproduction hints.
 - **Print-Ready HTML Reports**: Generates self-contained, print-ready corporate documentation complete with Document IDs, revision codes, execution durations, and test suite breakdowns.
 - **Customizable Reports**: Personalize report branding with your company name, corporate logo, confidentiality classification (e.g., `CONFIDENTIAL`, `INTERNAL USE ONLY`), custom Document ID prefixes, and even swap in custom Blade report templates (`report_view`) via configuration or environment variables.
 - **Sign-Off Matrices**: Dynamically append structured sign-off sheets for Testers, Reviewers, Approvers, and Acknowledgers directly into the report.
@@ -104,11 +106,11 @@ php artisan rubberstamp:features \
 
 ### Running Browser Tests (`rubberstamp:browser`)
 
-Run Pest browser tests with Playwright environment health checks, Vite hot-reload protection, and automated visual snapshot capture embedded as base64 images into the audit report.
+Run Pest browser tests with Playwright environment health checks, live scenario progress streaming, automated visual snapshot capture, and actionable deadlock diagnostics.
 
 > [!NOTE]
 > **Zero-Configuration Browser Testing**:
-> Unlike typical browser testing setups, you **do not** need to add traits like `CapturesBrowserSnapshots` or edit `tests/TestCase.php` / `tests/Pest.php` in your host application. The `rubberstamp:browser` command automatically boots snapshot hooks and page trackers at runtime.
+> Unlike typical browser testing setups, you **do not** need to add traits like `CapturesBrowserSnapshots` or edit `tests/TestCase.php` / `tests/Pest.php` in your host application. The `rubberstamp:browser` command automatically boots snapshot hooks and real-time scenario trackers at runtime. Test scenarios stream live in your terminal and seamlessly transition to Pest's native Collision output upon conclusion.
 
 ```bash
 # View all available arguments and options
