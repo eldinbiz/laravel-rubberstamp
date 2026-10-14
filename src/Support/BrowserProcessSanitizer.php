@@ -60,6 +60,10 @@ final class BrowserProcessSanitizer
     {
         $normalizedBase = strtolower(str_replace('\\', '/', $this->basePath));
         $normalizedBaseBackslash = strtolower(str_replace('/', '\\', $this->basePath));
+        $realBase = realpath($this->basePath) ?: $this->basePath;
+        $normalizedRealBase = strtolower(str_replace('\\', '/', $realBase));
+        $normalizedRealBaseBackslash = strtolower(str_replace('/', '\\', $realBase));
+        $baseName = strtolower(basename($this->basePath));
 
         $detectedNodeProcesses = [];
         $detectedChromiumProcesses = [];
@@ -91,7 +95,11 @@ final class BrowserProcessSanitizer
                 continue;
             }
 
-            $matchesPath = str_contains($cmdLower, $normalizedBase) || str_contains($cmdLower, $normalizedBaseBackslash);
+            $matchesPath = str_contains($cmdLower, $normalizedBase)
+                || str_contains($cmdLower, $normalizedBaseBackslash)
+                || str_contains($cmdLower, $normalizedRealBase)
+                || str_contains($cmdLower, $normalizedRealBaseBackslash)
+                || (str_contains($cmdLower, $baseName) && (str_contains($cmdLower, 'node_modules') || str_contains($cmdLower, 'artisan')));
             $hasRelativeNodeModules = str_contains($cmdLower, 'node_modules') && ! str_contains($cmdLower, ':\\') && ! str_starts_with($cmdLower, '/');
             $hasAbsoluteArtisanPath = (bool) preg_match('/(?:[a-zA-Z]:[\\\\\/]|\/)[^\s"]*artisan/i', $cmd);
             $hasRelativeArtisan = str_contains($cmdLower, 'artisan') && ! $hasAbsoluteArtisanPath;
@@ -149,7 +157,14 @@ final class BrowserProcessSanitizer
 
             $effectivePort = $holdsRecordedPort ? $recordedPort : $cliPort;
 
-            if ($matchesPath || $holdsRecordedPort || $hasRelativeNodeModules) {
+            // Catch Playwright server if it matches repository path, holds recorded port,
+            // or has node_modules reference on disk
+            $isProjectPlaywright = $matchesPath
+                || $holdsRecordedPort
+                || $hasRelativeNodeModules
+                || (str_contains($cmdLower, 'node_modules') && str_contains($cmdLower, 'playwright'));
+
+            if ($isProjectPlaywright) {
                 $scope = $matchesPath
                     ? ($this->appName ?: basename($this->basePath))
                     : ($this->appName ?: basename($this->basePath)).' (local)';
@@ -710,7 +725,7 @@ final class BrowserProcessSanitizer
      */
     private function fetchWindowsProcessesViaCim(): array
     {
-        $script = 'Get-CimInstance Win32_Process | Where-Object { $_.Name -in @(\'node.exe\',\'chromium.exe\',\'chrome.exe\',\'php.exe\',\'php\') } | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress';
+        $script = 'Get-CimInstance Win32_Process -Filter "Name = \'node.exe\' OR Name = \'chromium.exe\' OR Name = \'chrome.exe\' OR Name = \'php.exe\'" | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress';
         $encodedCommand = base64_encode(mb_convert_encoding($script, 'UTF-16LE', 'UTF-8'));
 
         $process = new Process([
@@ -720,7 +735,7 @@ final class BrowserProcessSanitizer
             '-EncodedCommand',
             $encodedCommand,
         ]);
-        $process->setTimeout(10);
+        $process->setTimeout(20);
 
         try {
             $process->run();
