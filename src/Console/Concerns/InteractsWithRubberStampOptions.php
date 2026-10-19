@@ -245,6 +245,15 @@ trait InteractsWithRubberStampOptions
                 $environmentFile,
             );
 
+            $vars = array_values(array_unique(array_merge($vars, [
+                'DB_CONNECTION',
+                'DB_DATABASE',
+                'DB_HOST',
+                'DB_PORT',
+                'DB_USERNAME',
+                'DB_PASSWORD',
+            ])));
+
             $repository = Env::getRepository();
 
             foreach ($vars as $name) {

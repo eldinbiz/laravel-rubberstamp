@@ -437,6 +437,26 @@ final class BrowserEnvironmentDoctor
             return;
         }
 
+        $expectedRevision = $this->getExpectedPlaywrightChromiumRevision();
+
+        if ($expectedRevision !== null) {
+            $defaultBins = [
+                "/root/.cache/ms-playwright/chromium_headless_shell-{$expectedRevision}/chrome-headless-shell-linux64/chrome-headless-shell",
+                "/root/.cache/ms-playwright/chromium-{$expectedRevision}/chrome-linux64/chrome",
+            ];
+
+            foreach ($defaultBins as $binPath) {
+                $dir = dirname($binPath);
+                if (! is_dir($dir)) {
+                    @mkdir($dir, 0755, true);
+                }
+                if (! file_exists($binPath) || ! is_link($binPath)) {
+                    @unlink($binPath);
+                    @symlink($chromiumPath, $binPath);
+                }
+            }
+        }
+
         $cachePatterns = [
             '/root/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell',
             '/root/.cache/ms-playwright/chromium-*/chrome-linux64/chrome',

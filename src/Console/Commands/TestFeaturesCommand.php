@@ -116,10 +116,25 @@ final class TestFeaturesCommand extends Command
 
         $this->clearEnv();
 
+        /** @var array<string, string|null>|null $env */
+        $env = null;
+
+        if (! $this->option('env')) {
+            $env = array_merge($_SERVER, [
+                'APP_ENV' => 'testing',
+                'DB_CONNECTION' => 'sqlite',
+                'DB_DATABASE' => ':memory:',
+                'CACHE_STORE' => 'array',
+                'SESSION_DRIVER' => 'array',
+                'QUEUE_CONNECTION' => 'sync',
+                'MAIL_MAILER' => 'array',
+            ]);
+        }
+
         $process = new Process(
             command: $command,
             cwd: base_path(),
-            env: null,
+            env: $env,
             timeout: null,
         );
 

@@ -48,11 +48,9 @@ foreach ([
     'QUEUE_CONNECTION' => 'sync',
     'MAIL_MAILER' => 'array',
 ] as $key => $value) {
-    if (getenv($key) === false || getenv($key) === '') {
-        putenv("{$key}={$value}");
-        $_ENV[$key] = $value;
-        $_SERVER[$key] = $value;
-    }
+    putenv("{$key}={$value}");
+    $_ENV[$key] = $value;
+    $_SERVER[$key] = $value;
 }
 
 // 4. Load Composer autoloader
