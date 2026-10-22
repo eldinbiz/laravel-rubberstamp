@@ -8,10 +8,10 @@
     <img src="https://img.shields.io/badge/Laravel-%5E12.0-FF2D20?style=flat-square&logo=laravel" alt="Laravel ^12.0">
     <img src="https://img.shields.io/badge/PHP-%5E8.3-777BB4?style=flat-square&logo=php" alt="PHP ^8.3">
     <img src="https://img.shields.io/badge/Pest-%5E4.6-FF8000?style=flat-square" alt="Pest ^4.6">
-    <img src="https://img.shields.io/badge/Tests-passing-44cc11?style=flat-square&logo=githubactions&logoColor=white" alt="Tests passing">
-    <img src="https://img.shields.io/badge/Security_Audit-pending-dfb317?style=flat-square" alt="Security Audit pending">
-    <img src="https://img.shields.io/badge/Vulnerability_Scan-scheduled-blue?style=flat-square" alt="Vulnerability Scan scheduled">
-    <img src="https://img.shields.io/badge/Composer_Audit-passed-green?style=flat-square&logo=composer" alt="Composer Audit passed">
+    <a href="https://github.com/eldinbiz/laravel-rubberstamp/actions/workflows/tests.yml?query=branch%3Astaging"><img src="https://github.com/eldinbiz/laravel-rubberstamp/actions/workflows/tests.yml/badge.svg?branch=staging" alt="Tests"></a>
+    <a href="https://github.com/eldinbiz/laravel-rubberstamp/actions/workflows/security-audit.yml?query=branch%3Astaging"><img src="https://github.com/eldinbiz/laravel-rubberstamp/actions/workflows/security-audit.yml/badge.svg?branch=staging" alt="Security Audit"></a>
+    <a href="https://github.com/eldinbiz/laravel-rubberstamp/actions/workflows/vulnerability-scan.yml?query=branch%3Astaging"><img src="https://github.com/eldinbiz/laravel-rubberstamp/actions/workflows/vulnerability-scan.yml/badge.svg?branch=staging" alt="Vulnerability Scan"></a>
+    <a href="https://github.com/eldinbiz/laravel-rubberstamp/actions/workflows/composer-audit.yml?query=branch%3Astaging"><img src="https://github.com/eldinbiz/laravel-rubberstamp/actions/workflows/composer-audit.yml/badge.svg?branch=staging" alt="Composer Audit"></a>
 </p>
 
 ## Overview

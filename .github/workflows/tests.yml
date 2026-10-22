@@ -4,8 +4,11 @@ on:
   push:
     branches:
       - main
+      - staging
       - '*.x'
   pull_request:
+    branches:
+      - staging
 
 permissions:
   contents: read

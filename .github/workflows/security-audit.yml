@@ -1,0 +1,48 @@
+name: Security Audit
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - '*.x'
+  pull_request:
+    branches:
+      - staging
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-audit:
+    name: Security & Secret Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate Composer Configuration Security
+        run: composer validate --strict --no-check-all
+
+      - name: Check for Uncommitted Credentials & Sensitive Files
+        run: |
+          echo "Scanning for sensitive keys, credentials, and non-example env files..."
+          EXPOSED=$(find . -maxdepth 3 \( -name ".env*" ! -name "*.example" \) -o -name "*.pem" -o -name "*.key" -o -name "id_rsa*" 2>/dev/null || true)
+          if [ -n "$EXPOSED" ]; then
+            echo "::error::Sensitive files detected in repository: $EXPOSED"
+            exit 1
+          fi
+          echo "No sensitive credential files detected."
